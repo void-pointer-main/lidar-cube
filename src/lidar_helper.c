@@ -1,6 +1,7 @@
 #include "lidar_helper.h"
 
 #include <stdio.h>
+#include "pico/multicore.h"
 
 #include "vl53l7cx_api.h"
 #include "PCF8575_helper.h"
@@ -58,6 +59,11 @@ static inline int pin_to_lidar_index(int pin) {
     }
 }
 
+typedef enum {
+    GROUP_I2C_0,
+    GROUP_I2C_1
+} i2c_group_t;
+
 typedef struct {
     VL53L7CX_Configuration dev;
     volatile bool data_ready;
@@ -68,13 +74,16 @@ lidar_t lidars[NUM_LIDARS];
 
 const bool ignore_sensor_flag[NUM_LIDARS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-void data_ready_handler(uint gpio, uint32_t event_mask);
+static void data_ready_handler(uint gpio, uint32_t event_mask);
 static inline bool range_valid(int range_status) {
     return range_status == 5 ||
             range_status == 9 ||
             range_status == 10 ||
             range_status == 12;
 }
+int16_t core1_results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
+void core_1_sampling();
+static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS], bool i2c_0_group);
 
 int lidars_init() {
 
@@ -165,31 +174,49 @@ void lidars_start_sampling() {
         if (ignore_sensor_flag[i]) continue;
 
         vl53l7cx_start_ranging(&(lidars[i].dev));
-        // while (time_us_32() - previous_time < 49859);
-        // previous_time = time_us_32();
+    }
+    multicore_launch_core1(core_1_sampling);
+}
+
+void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
+    multicore_fifo_push_blocking(0);
+
+    lidars_sample_group(results, true);
+
+    multicore_fifo_pop_blocking();
+    memcpy(&(results[NUM_LIDARS/2]), core1_results, NUM_LIDARS/2*VLX_NUM_ROWS*VLX_NUM_COLS*sizeof(int16_t));
+}
+
+void core_1_sampling() {
+    while (1) {
+        multicore_fifo_pop_blocking();
+
+        lidars_sample_group(core1_results, false);
+
+        multicore_fifo_push_blocking(0);
     }
 }
 
 /* we check continously through the lidars for ones with available data */
-void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
-
+static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS], bool i2c_0_group) {
     VL53L7CX_ResultsData res;
 
     int num_lidars_dealt_with = 0;
-    bool lidar_read[NUM_LIDARS] = {0};
+    bool lidar_already_read[NUM_LIDARS/2] = {0};
 
-    while (num_lidars_dealt_with < NUM_LIDARS) {
-        for (int i = 0; i < NUM_LIDARS; i++) {
-            if (lidar_read[i]) {
+    while (num_lidars_dealt_with < NUM_LIDARS/2) {
+        for (int j = 0; j < NUM_LIDARS/2; j++) {
+            int i = j + (i2c_0_group ? 0 : NUM_LIDARS/2);
+            if (lidar_already_read[j]) {
                 continue;
             }
             if (ignore_sensor_flag[i]) {
                 for (int r = 0; r < VLX_NUM_ROWS; r++) {
                     for (int c = 0; c < VLX_NUM_COLS; c++) {
-                        results[i][r][c] = MAX_DIST_MM;
+                        results[j][r][c] = MAX_DIST_MM;
                     }
                 }
-                lidar_read[i] = true;
+                lidar_already_read[j] = true;
                 num_lidars_dealt_with++;
                 continue;
             }
@@ -198,7 +225,7 @@ void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
             }
 
             lidars[i].data_ready = false;
-            lidar_read[i] = true;
+            lidar_already_read[j] = true;
             num_lidars_dealt_with++;
             vl53l7cx_get_ranging_data(&(lidars[i].dev), &res);
             for (int r = 0; r < VLX_NUM_ROWS; r++) {
@@ -206,9 +233,9 @@ void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
                     int index = (r)*8 + (7-c); // we flip the image vertically
 
                     if (!range_valid(res.target_status[index])) {
-                        results[i][r][c] = MAX_DIST_MM;
+                        results[j][r][c] = MAX_DIST_MM;
                     } else {
-                        results[i][r][c] = res.distance_mm[index];
+                        results[j][r][c] = res.distance_mm[index];
                     }
                 }
             }
@@ -216,7 +243,53 @@ void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
     }
 }
 
-void data_ready_handler(uint gpio, uint32_t event_mask) {
+// /* we check continously through the lidars for ones with available data */
+// void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
+
+//     VL53L7CX_ResultsData res;
+
+//     int num_lidars_dealt_with = 0;
+//     bool lidar_already_read[NUM_LIDARS] = {0};
+
+//     while (num_lidars_dealt_with < NUM_LIDARS) {
+//         for (int i = 0; i < NUM_LIDARS; i++) {
+//             if (lidar_already_read[i]) {
+//                 continue;
+//             }
+//             if (ignore_sensor_flag[i]) {
+//                 for (int r = 0; r < VLX_NUM_ROWS; r++) {
+//                     for (int c = 0; c < VLX_NUM_COLS; c++) {
+//                         results[i][r][c] = MAX_DIST_MM;
+//                     }
+//                 }
+//                 lidar_already_read[i] = true;
+//                 num_lidars_dealt_with++;
+//                 continue;
+//             }
+//             if (!(lidars[i].data_ready)) {
+//                 continue;
+//             }
+
+//             lidars[i].data_ready = false;
+//             lidar_already_read[i] = true;
+//             num_lidars_dealt_with++;
+//             vl53l7cx_get_ranging_data(&(lidars[i].dev), &res);
+//             for (int r = 0; r < VLX_NUM_ROWS; r++) {
+//                 for (int c = 0; c < VLX_NUM_COLS; c++) {
+//                     int index = (r)*8 + (7-c); // we flip the image vertically
+
+//                     if (!range_valid(res.target_status[index])) {
+//                         results[i][r][c] = MAX_DIST_MM;
+//                     } else {
+//                         results[i][r][c] = res.distance_mm[index];
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
+static void data_ready_handler(uint gpio, uint32_t event_mask) {
     int index = pin_to_lidar_index(gpio);
     if (index < 0) return;
     lidars[index].data_ready = true;

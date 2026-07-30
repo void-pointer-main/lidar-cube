@@ -20,8 +20,6 @@ int main()
 
     init_i2c();
 
-    sleep_ms(2000);
-
     ism_init();
 
     rejection_helper_init();
@@ -42,18 +40,17 @@ int main()
         uint32_t et = time_us_32();
         
         int drdy = ism_sample(acc, gyro);
-        
 
         bool moving;
         int d;
         rejection_helper_update(acc, &moving, &d);
 
         printf("\x1b[1;1H");
-        for (int l = 6; l < 12; l++) {
+        for (int l = 0; l < 6; l++) {
             for (int r = 0; r < 8; r++) {
                 for (int c = 0; c < 8; c++) {
                     printf("\x1b[48;5;%dm  \x1b[0;0m", mm_to_color_id(results_mm[l][r][c]));
-                    // printf("%4d ", results_mm[l][r][c]);           
+                    // printf("%4d ", results_mm[l][r][c]);             
                 }
                 putchar('\n');
             }
@@ -62,7 +59,7 @@ int main()
         putchar('\n');
         printf("%d\n", et-st);
 
-        // displays_update(results_mm);
+        displays_update(results_mm);
         // sleep_ms(60);
     }
 }
