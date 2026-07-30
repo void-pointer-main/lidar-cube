@@ -88,7 +88,9 @@ void displays_update(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS])
             }
         }
 
-        // printf("i: %d\n", i);
+        // ws2812_blank_screen(i);
+        // ws2812_write_screen_pixel(4, 0, 0, rgb_modified_intensity(distance_to_rgb_t_f(0.), 1, 8));
+        // ws2812_write_screen_pixel(4, 0, 7, rgb_modified_intensity(distance_to_rgb_t_f(1.), 1, 8));
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
             for (int c = 0; c < NUM_DISP_ROWS; c++) {
                 float t = (float)(displays[i].pixel_dists[r][c]) / MAX_DIST_MM;

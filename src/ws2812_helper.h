@@ -24,20 +24,20 @@
 #define NUM_COLS 8
 #define NUM_SCREENS 6
 
-#define WS2812_PIN_TOP 4 
-#define WS2812_PIN_BOTTOM 5
+#define WS2812_PIN_FRONT 4
+#define WS2812_PIN_BACK 5
 #define WS2812_PIN_LEFT 6
 #define WS2812_PIN_RIGHT 7
-#define WS2812_PIN_FRONT 8
-#define WS2812_PIN_BACK 9
+#define WS2812_PIN_TOP 8
+#define WS2812_PIN_BOTTOM 9
 
 enum screen_enum {
-    TOP,
-    BOTTOM,
+    FRONT,
+    BACK,
     LEFT,
     RIGHT,
-    FRONT,
-    BACK
+    TOP,
+    BOTTOM
 };
 
 void ws2812_init();

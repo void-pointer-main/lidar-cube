@@ -7,9 +7,9 @@
 #include "PCF8575_helper.h"
 #include "utils.h"
 
-#define RANGING_FREQUENCY_HZ 18
+#define RANGING_FREQUENCY_HZ 15
 #define SHARPENER_PERCENTAGE 15
-#define TEMP_CALIBRATION_LOOP_CNT 1000
+#define TEMP_CALIBRATION_LOOP_CNT 500
 #define INTEGRATION_TIME_MS 3
 
 #define DEFAULT_VL53L7CX_ADDR 0x29
@@ -68,6 +68,7 @@ typedef struct {
     VL53L7CX_Configuration dev;
     volatile bool data_ready;
     uint32_t array[256];
+    uint8_t temp;
 } lidar_t;
 
 lidar_t lidars[NUM_LIDARS];
@@ -228,6 +229,8 @@ static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_
             lidar_already_read[j] = true;
             num_lidars_dealt_with++;
             vl53l7cx_get_ranging_data(&(lidars[i].dev), &res);
+            lidars[i].temp = res.silicon_temp_degc;
+            printf("%d\n", lidars[i].temp);
             for (int r = 0; r < VLX_NUM_ROWS; r++) {
                 for (int c = 0; c < VLX_NUM_COLS; c++) {
                     int index = (r)*8 + (7-c); // we flip the image vertically
@@ -242,52 +245,6 @@ static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_
         }
     }
 }
-
-// /* we check continously through the lidars for ones with available data */
-// void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
-
-//     VL53L7CX_ResultsData res;
-
-//     int num_lidars_dealt_with = 0;
-//     bool lidar_already_read[NUM_LIDARS] = {0};
-
-//     while (num_lidars_dealt_with < NUM_LIDARS) {
-//         for (int i = 0; i < NUM_LIDARS; i++) {
-//             if (lidar_already_read[i]) {
-//                 continue;
-//             }
-//             if (ignore_sensor_flag[i]) {
-//                 for (int r = 0; r < VLX_NUM_ROWS; r++) {
-//                     for (int c = 0; c < VLX_NUM_COLS; c++) {
-//                         results[i][r][c] = MAX_DIST_MM;
-//                     }
-//                 }
-//                 lidar_already_read[i] = true;
-//                 num_lidars_dealt_with++;
-//                 continue;
-//             }
-//             if (!(lidars[i].data_ready)) {
-//                 continue;
-//             }
-
-//             lidars[i].data_ready = false;
-//             lidar_already_read[i] = true;
-//             num_lidars_dealt_with++;
-//             vl53l7cx_get_ranging_data(&(lidars[i].dev), &res);
-//             for (int r = 0; r < VLX_NUM_ROWS; r++) {
-//                 for (int c = 0; c < VLX_NUM_COLS; c++) {
-//                     int index = (r)*8 + (7-c); // we flip the image vertically
-
-//                     if (!range_valid(res.target_status[index])) {
-//                         results[i][r][c] = MAX_DIST_MM;
-//                     } else {
-//                         results[i][r][c] = res.distance_mm[index];
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
 
 static void data_ready_handler(uint gpio, uint32_t event_mask) {
     int index = pin_to_lidar_index(gpio);

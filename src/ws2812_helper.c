@@ -44,54 +44,54 @@ void ws2812_init() {
     // look, this part isn't very elegant, but... eh.
 
     // There are only four state machines per PIO block
-    screens[TOP].pio = pio0;
-    screens[BOTTOM].pio = pio0;
+    screens[FRONT].pio = pio0;
+    screens[BACK].pio = pio0;
     screens[LEFT].pio = pio0;
     screens[RIGHT].pio = pio0;
-    screens[FRONT].pio = pio1;
-    screens[BACK].pio = pio1;
+    screens[TOP].pio = pio1;
+    screens[BOTTOM].pio = pio1;
 
-    screens[TOP].sm = 0;
-    screens[BOTTOM].sm = 1;
-    screens[LEFT].sm = 2;
-    screens[RIGHT].sm = 3;
     screens[FRONT].sm = 0;
     screens[BACK].sm = 1;
+    screens[LEFT].sm = 2;
+    screens[RIGHT].sm = 3;
+    screens[TOP].sm = 0;
+    screens[BOTTOM].sm = 1;
 
-    screens[TOP].offset = offset_0;
-    screens[BOTTOM].offset = offset_0;
+    screens[FRONT].offset = offset_0;
+    screens[BACK].offset = offset_0;
     screens[LEFT].offset = offset_0;
     screens[RIGHT].offset = offset_0;
-    screens[FRONT].offset = offset_1;
-    screens[BACK].offset = offset_1;
+    screens[TOP].offset = offset_1;
+    screens[BOTTOM].offset = offset_1;
 
-    screens[TOP].pin = WS2812_PIN_TOP;
-    screens[BOTTOM].pin = WS2812_PIN_BOTTOM;
-    screens[LEFT].pin = WS2812_PIN_LEFT;
-    screens[RIGHT].pin = WS2812_PIN_RIGHT;
     screens[FRONT].pin = WS2812_PIN_FRONT;
     screens[BACK].pin = WS2812_PIN_BACK;
+    screens[LEFT].pin = WS2812_PIN_LEFT;
+    screens[RIGHT].pin = WS2812_PIN_RIGHT;
+    screens[TOP].pin = WS2812_PIN_TOP;
+    screens[BOTTOM].pin = WS2812_PIN_BOTTOM;
 
-    screens[TOP].row_col_flipped_before_inversion = true;
-    screens[BOTTOM].row_col_flipped_before_inversion = true;
+    screens[FRONT].row_col_flipped_before_inversion = true;
+    screens[BACK].row_col_flipped_before_inversion = true;
     screens[LEFT].row_col_flipped_before_inversion = false;
     screens[RIGHT].row_col_flipped_before_inversion = false;
-    screens[FRONT].row_col_flipped_before_inversion = false;
-    screens[BACK].row_col_flipped_before_inversion = false;
+    screens[TOP].row_col_flipped_before_inversion = false;
+    screens[BOTTOM].row_col_flipped_before_inversion = false;
 
-    screens[TOP].row_inverted = false;
-    screens[BOTTOM].row_inverted = false;
+    screens[FRONT].row_inverted = false;
+    screens[BACK].row_inverted = false;
     screens[LEFT].row_inverted = true;
     screens[RIGHT].row_inverted = true;
-    screens[FRONT].row_inverted = true;
-    screens[BACK].row_inverted = true;
+    screens[TOP].row_inverted = true;
+    screens[BOTTOM].row_inverted = true;
 
-    screens[TOP].col_inverted = true;
-    screens[BOTTOM].col_inverted = true;
-    screens[LEFT].col_inverted = true;
-    screens[RIGHT].col_inverted = true;
     screens[FRONT].col_inverted = true;
     screens[BACK].col_inverted = true;
+    screens[LEFT].col_inverted = true;
+    screens[RIGHT].col_inverted = true;
+    screens[TOP].col_inverted = true;
+    screens[BOTTOM].col_inverted = true;
 
     // for (int i = 0; i < NUM_SCREENS; i++) {
     //     screens[i].dma_chan = dma_claim
@@ -114,8 +114,8 @@ void ws2812_display_screens() {
 
 void ws2812_write_screen_pixel(uint screen, uint row, uint col, rgb_t rgb) {
     if (screens[screen].row_col_flipped_before_inversion) {
-        int hw_r = screens[screen].row_inverted ? NUM_ROWS-1 - col : col;
-        int hw_c = screens[screen].col_inverted ? NUM_COLS-1 - row : row;
+        int hw_r = screens[screen].col_inverted ? NUM_ROWS-1 - col : col;
+        int hw_c = screens[screen].row_inverted ? NUM_COLS-1 - row : row;
         screens[screen]._pixels[hw_r][hw_c] = rgb;
     } else {
         int hw_r = screens[screen].row_inverted ? NUM_ROWS-1 - row : row;
