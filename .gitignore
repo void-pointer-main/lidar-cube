@@ -1,0 +1,40 @@
+# Python virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# VS Code
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# CMake build directory
+build/
+cmake-build-*/
+
+# Compiled binaries / object files
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+
+# OS files
+.DS_Store
+Thumbs.db
