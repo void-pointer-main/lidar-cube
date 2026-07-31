@@ -25,11 +25,11 @@
 #define NUM_SCREENS 6
 
 #define WS2812_PIN_FRONT 4
-#define WS2812_PIN_BACK 5
-#define WS2812_PIN_LEFT 6
-#define WS2812_PIN_RIGHT 7
-#define WS2812_PIN_TOP 8
-#define WS2812_PIN_BOTTOM 9
+#define WS2812_PIN_BACK 8
+#define WS2812_PIN_LEFT 5
+#define WS2812_PIN_RIGHT 9
+#define WS2812_PIN_TOP 7
+#define WS2812_PIN_BOTTOM 6
 
 enum screen_enum {
     FRONT,

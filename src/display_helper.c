@@ -97,7 +97,7 @@ void displays_update(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS])
                 // float t = (float)results_mm[i][r][c] / MAX_DIST_MM;
                 // printf("%.2f\n", t);
                 // t = powf(t, 0.6f); // possible adjusting of distance relation
-                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 1, 8));
+                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 5, 96));
             }
         }
     }

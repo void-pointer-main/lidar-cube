@@ -47,9 +47,9 @@ rgb_t distance_to_rgb_t_f(float distance) {
     if (distance > 1.0f) distance = 1.0f;
 
     // HSLuv
-    float h = (1.0 - distance) * 240.0;
+    float h = (distance) * 260.0;
     float s = 100.0;
-    float l = 65.0;
+    float l = 45.0;
 
     float r_tmp, g_tmp, b_tmp;
     hsluv2rgb(h, s, l, &r_tmp, &g_tmp, &b_tmp);

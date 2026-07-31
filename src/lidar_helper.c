@@ -7,10 +7,10 @@
 #include "PCF8575_helper.h"
 #include "utils.h"
 
-#define RANGING_FREQUENCY_HZ 15
+#define RANGING_FREQUENCY_HZ 20
 #define SHARPENER_PERCENTAGE 15
 #define TEMP_CALIBRATION_LOOP_CNT 500
-#define INTEGRATION_TIME_MS 3
+#define INTEGRATION_TIME_MS 2
 
 #define DEFAULT_VL53L7CX_ADDR 0x29
 
@@ -77,10 +77,10 @@ const bool ignore_sensor_flag[NUM_LIDARS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 static void data_ready_handler(uint gpio, uint32_t event_mask);
 static inline bool range_valid(int range_status) {
-    return range_status == 5 ||
-            range_status == 9 ||
-            range_status == 10 ||
-            range_status == 12;
+    return range_status == 5
+            || range_status == 9
+            || range_status == 10
+            || range_status == 12;
 }
 int16_t core1_results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 void core_1_sampling();
@@ -230,16 +230,17 @@ static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_
             num_lidars_dealt_with++;
             vl53l7cx_get_ranging_data(&(lidars[i].dev), &res);
             lidars[i].temp = res.silicon_temp_degc;
-            printf("%d\n", lidars[i].temp);
             for (int r = 0; r < VLX_NUM_ROWS; r++) {
                 for (int c = 0; c < VLX_NUM_COLS; c++) {
                     int index = (r)*8 + (7-c); // we flip the image vertically
 
-                    if (!range_valid(res.target_status[index])) {
-                        results[j][r][c] = MAX_DIST_MM;
+                    int16_t new_res;
+                    if (!range_valid(res.target_status[index]) || res.distance_mm[index] > MAX_DIST_MM) {
+                        new_res = MAX_DIST_MM;
                     } else {
-                        results[j][r][c] = res.distance_mm[index];
+                        new_res = res.distance_mm[index];
                     }
+                    results[j][r][c] = new_res;// * 3/4 + results[j][r][c] * 1/4; possible exp filtration
                 }
             }
         }

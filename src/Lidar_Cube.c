@@ -8,6 +8,7 @@
 #include "display_helper.h"
 #include "ism_helper.h"
 #include "lidar_rejection_helper.h"
+#include "PCF8575_helper.h"
 
 #include <stdint.h>
 #include <math.h>
@@ -28,12 +29,14 @@ int main()
     my_assert(lidars_init() == 0, __FILE__, __LINE__);
     lidars_start_sampling();
 
+    // PCF_set_mask(0x00);
+
     printf("init success\n");
 
     float acc[3] = {0}, gyro[3] = {0};
 
     while (1) {
-        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
+        static int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 
         uint32_t st = time_us_32();
         lidars_sample(results_mm);
@@ -46,10 +49,10 @@ int main()
         rejection_helper_update(acc, &moving, &d);
 
         printf("\x1b[1;1H");
-        for (int l = 6; l < 12; l++) {
+        for (int l = 0; l < 6; l++) {
             for (int r = 0; r < 8; r++) {
                 for (int c = 0; c < 8; c++) {
-                    printf("\x1b[48;5;%dm  \x1b[0;0m", mm_to_color_id(results_mm[l][r][c]));
+                    printf("\x1b[48;5;%dm%04d\x1b[0;0m", mm_to_color_id(results_mm[l][r][c]), results_mm[l][r][c]);
                     // printf("%4d ", results_mm[l][r][c]);             
                 }
                 putchar('\n');
@@ -60,7 +63,7 @@ int main()
         printf("%d\n", et-st);
 
         displays_update(results_mm);
-        // sleep_ms(60);
+        // sleep_ms(50);
     }
 }
 
