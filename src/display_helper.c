@@ -65,7 +65,7 @@ void displays_init() {
     displays[5].lid_refs[LREF_EDGE_RIGHT].half_plane = HP_TOP;
 }
 
-void displays_update(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
+void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
     for (int i = 0; i < NUM_SCREENS; i++) {
         // Handle mixing of pixels
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
@@ -87,7 +87,11 @@ void displays_update(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS])
                 }
             }
         }
+    }
+}
 
+void displays_distance_to_color_write() {
+    for (int i = 0; i < NUM_SCREENS; i++) {
         // ws2812_blank_screen(i);
         // ws2812_write_screen_pixel(4, 0, 0, rgb_modified_intensity(distance_to_rgb_t_f(0.), 1, 8));
         // ws2812_write_screen_pixel(4, 0, 7, rgb_modified_intensity(distance_to_rgb_t_f(1.), 1, 8));
@@ -97,11 +101,10 @@ void displays_update(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS])
                 // float t = (float)results_mm[i][r][c] / MAX_DIST_MM;
                 // printf("%.2f\n", t);
                 // t = powf(t, 0.6f); // possible adjusting of distance relation
-                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 5, 96));
+                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 6, 96));
             }
         }
     }
-    ws2812_display_screens();
 }
 
 // we get the associated indexes for the the lidar and the display. This includes adding necessary offsets to both the lidar and display indexes.

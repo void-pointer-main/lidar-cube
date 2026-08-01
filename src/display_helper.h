@@ -36,6 +36,7 @@ typedef struct {
 } display_t;
 
 void displays_init();
-void displays_update();
+void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]);
+void displays_distance_to_color_write();
 
 #endif

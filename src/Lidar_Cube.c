@@ -8,7 +8,8 @@
 #include "display_helper.h"
 #include "ism_helper.h"
 #include "lidar_rejection_helper.h"
-#include "PCF8575_helper.h"
+// #include "PCF8575_helper.h"
+#include "ws2812_helper.h"
 
 #include <stdint.h>
 #include <math.h>
@@ -63,7 +64,10 @@ int main()
         printf("%d\n", et-st);
 
         displays_update(results_mm);
-        // sleep_ms(50);
+        
+        displays_distance_to_color_write();
+
+        ws2812_display_screens();
     }
 }
 
