@@ -11,6 +11,8 @@
 // #include "PCF8575_helper.h"
 #include "ws2812_helper.h"
 
+#include "gol_engine.h"
+
 #include <stdint.h>
 #include <math.h>
 
@@ -36,8 +38,10 @@ int main()
 
     float acc[3] = {0}, gyro[3] = {0};
 
+    gol_init();
+
     while (1) {
-        static int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
+        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
 
         uint32_t st = time_us_32();
         lidars_sample(results_mm);
@@ -50,7 +54,7 @@ int main()
         rejection_helper_update(acc, &moving, &d);
 
         printf("\x1b[1;1H");
-        for (int l = 0; l < 6; l++) {
+        for (int l = 6; l < 12; l++) {
             for (int r = 0; r < 8; r++) {
                 for (int c = 0; c < 8; c++) {
                     printf("\x1b[48;5;%dm%04d\x1b[0;0m", mm_to_color_id(results_mm[l][r][c]), results_mm[l][r][c]);
@@ -63,9 +67,12 @@ int main()
         putchar('\n');
         printf("%d\n", et-st);
 
-        displays_update(results_mm);
+        displays_project(results_mm);
+        int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
+        displays_get_collective_pixel_dists(collective_pixel_dists);
         
-        displays_distance_to_color_write();
+        gol_update_and_write(collective_pixel_dists);
+        // displays_distance_to_color_write();
 
         ws2812_display_screens();
     }

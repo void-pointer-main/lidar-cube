@@ -1,7 +1,33 @@
 #include "display_helper.h"
 
-#include "ws2812_helper.h"
+#include "string.h"
 
+// Each display takes in 4 sensors
+// From each sensor it only takes the half plane extending into the screen area
+typedef enum {
+    HP_TOP,
+    HP_BOTTOM,
+} half_plane_t;
+
+enum lid_ref_edge {
+    LREF_EDGE_TOP,
+    LREF_EDGE_BOTTOM,
+    LREF_EDGE_LEFT,
+    LREF_EDGE_RIGHT,
+    NUM_LREF_EDGES
+};
+
+// results array must be 8x8
+typedef struct {
+    uint results_array_index;
+    half_plane_t half_plane;
+} lidar_ref_t;
+
+typedef struct {
+    lidar_ref_t lid_refs[NUM_LREF_EDGES];
+} display_t;
+
+int16_t _collective_pixel_dists[NUM_SCREENS][NUM_DISP_ROWS][NUM_DISP_COLS] = {0};
 display_t displays[NUM_SCREENS];
 
 static void get_associated_indexes(int edge, int half_plane, int r, int c, int *vlx_r, int *vlx_c, int *d_r, int *d_c);
@@ -70,7 +96,7 @@ void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]
         // Handle mixing of pixels
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
             for (int c = 0; c < NUM_DISP_ROWS; c++) {
-                displays[i].pixel_dists[r][c] = MAX_DIST_MM;
+                _collective_pixel_dists[i][r][c] = MAX_DIST_MM;
             }
         }
         
@@ -81,13 +107,17 @@ void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]
                     int d_r, d_c;
                     get_associated_indexes(edge, displays[i].lid_refs[edge].half_plane, r, c, &vlx_r, &vlx_c, &d_r, &d_c);
 
-                    if (results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c] < displays[i].pixel_dists[d_r][d_c]) {
-                        displays[i].pixel_dists[d_r][d_c] = results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c];
+                    if (results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c] < _collective_pixel_dists[i][d_r][d_c]) {
+                        _collective_pixel_dists[i][d_r][d_c] = results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c];
                     }
                 }
             }
         }
     }
+}
+
+void displays_get_collective_pixel_dists(int16_t collective_pixel_dists[NUM_SCREENS][NUM_DISP_ROWS][NUM_DISP_COLS]) {
+    memcpy(collective_pixel_dists, _collective_pixel_dists, sizeof(_collective_pixel_dists));
 }
 
 void displays_distance_to_color_write() {
@@ -97,7 +127,7 @@ void displays_distance_to_color_write() {
         // ws2812_write_screen_pixel(4, 0, 7, rgb_modified_intensity(distance_to_rgb_t_f(1.), 1, 8));
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
             for (int c = 0; c < NUM_DISP_ROWS; c++) {
-                float t = (float)(displays[i].pixel_dists[r][c]) / MAX_DIST_MM;
+                float t = (float)(_collective_pixel_dists[i][r][c]) / MAX_DIST_MM;
                 // float t = (float)results_mm[i][r][c] / MAX_DIST_MM;
                 // printf("%.2f\n", t);
                 // t = powf(t, 0.6f); // possible adjusting of distance relation

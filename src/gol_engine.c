@@ -1,9 +1,13 @@
 #include "gol_engine.h"
 
-#include "ws2812_helper.h"
+#include <string.h>
+#include "utils.h"
 
 // just to clean the indexing in cell_is_alive up
 #define N (NUM_ROWS-1)
+
+#define LOWER_ACTIVATION_THRESH_mm 50
+#define UPPER_ACTIVATION_THRESH_mm 100
 
 bool current_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
 
@@ -11,14 +15,14 @@ static bool cell_will_be_alive(int screen, int row, int col);
 static bool cell_is_alive(int screen, int row, int col);
 
 void gol_init() {
-
+    memset(current_generation, 0, sizeof(current_generation));
 }
 
 void gol_deinit() {
 
 }
 
-void gol_update_and_write() {
+void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
     bool next_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
 
     for (int s = 0; s < NUM_SCREENS; s++) {
@@ -30,9 +34,22 @@ void gol_update_and_write() {
     }
 
     for (int s = 0; s < NUM_SCREENS; s++) {
+        ws2812_blank_screen(s);
         for (int r = 0; r < NUM_ROWS; r++) {
             for (int c = 0; c < NUM_COLS; c++) {
+                // normal progression
                 current_generation[s][r][c] = next_generation[s][r][c];
+
+                // additional forced user input
+                if (dist_array[s][r][c] > LOWER_ACTIVATION_THRESH_mm && dist_array[s][r][c] < UPPER_ACTIVATION_THRESH_mm) {
+                    current_generation[s][r][c] = true;
+                }
+
+                if (current_generation[s][r][c]) {
+                    ws2812_write_screen_pixel(s, r, c, rgb2rgb_t_f(50, 50, 50));
+                } else {
+                    ws2812_write_screen_pixel(s, r, c, rgb2rgb_t_f(0, 20, 5));
+                }
             }
         }
     }
