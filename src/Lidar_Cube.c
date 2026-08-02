@@ -10,13 +10,26 @@
 #include "lidar_rejection_helper.h"
 // #include "PCF8575_helper.h"
 #include "ws2812_helper.h"
+#include "mode_state_machine.h"
 
 #include "gol_engine.h"
 
 #include <stdint.h>
 #include <math.h>
 
+typedef enum {
+    PROJECTION,
+    GOL,
+    RIPPLE,
+    NUM_MODES,
+} mode_t;
+
+mode_t lidar_cube_mode;
+
 void init_i2c();
+
+void mode_init(mode_t mode);
+void mode_release(mode_t mode);
 
 int main()
 {
@@ -27,10 +40,11 @@ int main()
     ism_init();
 
     rejection_helper_init();
+    mode_state_machine_init();
 
     displays_init();
-    my_assert(lidars_init() == 0, __FILE__, __LINE__);
-    lidars_start_sampling();
+    // my_assert(lidars_init() == 0, __FILE__, __LINE__);
+    // lidars_start_sampling();
 
     // PCF_set_mask(0x00);
 
@@ -38,43 +52,93 @@ int main()
 
     float acc[3] = {0}, gyro[3] = {0};
 
+
+    lidar_cube_mode = GOL;
     gol_init();
 
     while (1) {
-        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
+        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 
-        uint32_t st = time_us_32();
-        lidars_sample(results_mm);
-        uint32_t et = time_us_32();
+        // uint32_t st = time_us_32();
+        // lidars_sample(results_mm);
+        // uint32_t et = time_us_32();
         
-        int drdy = ism_sample(acc, gyro);
+        ism_sample(acc, gyro);
+
+        // printf("%.2f,%.2f,%.2f\n", gyro[0], gyro[1], gyro[2]);
+
+        if (mode_state_machine_update(gyro)) {
+            lidar_cube_mode = (lidar_cube_mode + 1) % NUM_MODES;
+        }
 
         bool moving;
         int d;
         rejection_helper_update(acc, &moving, &d);
 
-        printf("\x1b[1;1H");
-        for (int l = 6; l < 12; l++) {
-            for (int r = 0; r < 8; r++) {
-                for (int c = 0; c < 8; c++) {
-                    printf("\x1b[48;5;%dm%04d\x1b[0;0m", mm_to_color_id(results_mm[l][r][c]), results_mm[l][r][c]);
-                    // printf("%4d ", results_mm[l][r][c]);             
-                }
-                putchar('\n');
-            }
-            putchar('\n');
-        }
-        putchar('\n');
-        printf("%d\n", et-st);
-
         displays_project(results_mm);
         int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
         displays_get_collective_pixel_dists(collective_pixel_dists);
-        
-        gol_update_and_write(collective_pixel_dists);
-        // displays_distance_to_color_write();
 
-        ws2812_display_screens();
+        switch (lidar_cube_mode) {
+            case PROJECTION:
+                
+                break;
+
+            case GOL:
+                gol_update_and_write(collective_pixel_dists);
+                break;
+
+            case RIPPLE:
+                
+                break;
+            
+            default:
+                break;
+            }
+
+        // ws2812_display_screens();
+
+        sleep_ms(50);
+    }
+}
+
+void mode_init(mode_t mode) {
+    switch (mode)
+    {
+    case PROJECTION:
+        
+        break;
+
+    case GOL:
+        gol_init();
+        break;
+
+    case RIPPLE:
+        
+        break;
+    
+    default:
+        break;
+    }
+}
+
+void mode_release(mode_t mode) {
+        switch (mode)
+    {
+    case PROJECTION:
+        
+        break;
+
+    case GOL:
+        gol_release();
+        break;
+
+    case RIPPLE:
+        
+        break;
+    
+    default:
+        break;
     }
 }
 

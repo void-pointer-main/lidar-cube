@@ -18,7 +18,7 @@ void gol_init() {
     memset(current_generation, 0, sizeof(current_generation));
 }
 
-void gol_deinit() {
+void gol_release() {
 
 }
 

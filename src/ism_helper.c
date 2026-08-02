@@ -66,6 +66,8 @@ static int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp, uint16_t 
 #define ACC_LSB ACC_LSB_2G
 #define GYRO_LSB GYRO_LSB_500DPS
 
+#define NUM_CALIBRATION_CYCLES 500
+
 static int16_t _raw_acc[3];
 static int16_t _raw_gyro[3];
 
@@ -96,6 +98,24 @@ void ism_init() {
     /* Set full scale */
     ism330is_xl_full_scale_set(&dev_ctx, ACC_FS);
     ism330is_gy_full_scale_set(&dev_ctx, GYRO_FS);
+
+    ism_calibrate_gyro();
+}
+
+void ism_calibrate_gyro() {
+    float gyro_sum[3] = {0};
+    for (int i = 0; i < NUM_CALIBRATION_CYCLES; i++) {
+        float acc[3], gyro[3];
+        ism_sample(acc, gyro);
+        for (int j = 0; j < 3; j++) {
+            gyro_sum[j] += gyro[j];
+        }
+        sleep_ms(5);
+    }
+
+    for (int j = 0; j < 3; j++) {
+        _gyro_calibration[j] = gyro_sum[j] / NUM_CALIBRATION_CYCLES;
+    }
 }
 
 int ism_sample(float acc[3], float gyro[3]) {
@@ -104,7 +124,7 @@ int ism_sample(float acc[3], float gyro[3]) {
     if (drdy) {
         ism330is_acceleration_raw_get(&dev_ctx, _raw_acc);
         for (int i = 0; i < 3; i++) {
-            acc[i] = (_raw_acc[i] - _acc_calibration[i]) * ACC_LSB;
+            acc[i] = (_raw_acc[i]) * ACC_LSB - _acc_calibration[i];
         }
     }
 
@@ -112,7 +132,7 @@ int ism_sample(float acc[3], float gyro[3]) {
     if (drdy) {
         ism330is_angular_rate_raw_get(&dev_ctx, _raw_gyro);
         for (int i = 0; i < 3; i++) {
-            gyro[i] = (_raw_gyro[i] - _gyro_calibration[i]) * GYRO_LSB;
+            gyro[i] = (_raw_gyro[i]) * GYRO_LSB - _gyro_calibration[i];
         }
     }
 

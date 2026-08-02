@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 
 void ism_init();
+void ism_calibrate_gyro();
 int ism_sample(float acc[3], float gyro[3]);
 
 #endif
