@@ -125,7 +125,7 @@ void shift_into_buffer(void *buffer, size_t len, size_t element_size, void *new_
     memcpy(buf, new_element, element_size);
 }
 
-float dot_product(float vec1[3], float vec2[3]) {
+float dot_product(const float vec1[3], const float vec2[3]) {
     return vec1[0]*vec2[0] + vec1[1]*vec2[1] + vec1[2]*vec2[2]; 
 }
 

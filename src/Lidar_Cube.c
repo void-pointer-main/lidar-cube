@@ -66,7 +66,7 @@ int main()
         
         ism_sample(acc, gyro);
 
-        // printf("%.2f,%.2f,%.2f\n", gyro[0], gyro[1], gyro[2]);
+        // printf("%.2f,%.2f,%.2f\n", acc[0], acc[1], acc[2]);
 
         if (mode_state_machine_update(gyro)) {
             mode_release(lidar_cube_mode);
@@ -75,10 +75,10 @@ int main()
         }
 
         bool moving;
-        int d;
-        rejection_helper_update(acc, &moving, &d);
+        int dir;
+        rejection_helper_update(acc, &moving, &dir);
 
-        displays_project(results_mm);
+        displays_project(results_mm, !moving, dir);
         int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
         displays_get_collective_pixel_dists(collective_pixel_dists);
 

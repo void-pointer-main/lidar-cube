@@ -91,8 +91,13 @@ void displays_init() {
     displays[5].lid_refs[LREF_EDGE_RIGHT].half_plane = HP_TOP;
 }
 
-void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
+void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction) {
     for (int i = 0; i < NUM_SCREENS; i++) {
+
+        if (i == direction && reject_direction) {
+            continue;
+        }
+
         // Handle mixing of pixels
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
             for (int c = 0; c < NUM_DISP_ROWS; c++) {

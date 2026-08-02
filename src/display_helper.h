@@ -11,7 +11,7 @@
 #define NUM_DISP_COLS 8
 
 void displays_init();
-void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]);
+void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction);
 
 // for the sake of compartmentalisation
 void displays_get_collective_pixel_dists(int16_t collective_pixel_dists[NUM_SCREENS][NUM_DISP_ROWS][NUM_DISP_COLS]);

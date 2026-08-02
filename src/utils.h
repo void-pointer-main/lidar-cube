@@ -91,7 +91,7 @@ uint8_t mm_to_color_id(int16_t mm);
 void i2c_test(i2c_inst_t *i2c);
 
 void shift_into_buffer(void *buffer, size_t len, size_t element_size, void *new_element);
-float dot_product(float vec1[3], float vec2[3]);
+float dot_product(const float vec1[3], const float vec2[3]);
 float magnitude(float vec[3]);
 void normalize(float vec[3]);
 void scalar_mult(float vec[3], float scalar);

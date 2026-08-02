@@ -13,13 +13,20 @@ static enum movement_states_t {
     NUM_MOVEMENT_STATES
 } movement_state;
 
-static float display_vectors[NUM_SCREENS][3];
+const float display_vectors[NUM_SCREENS][3] = {
+    {0, 0, 1.f},
+    {0, 0, -1.f},
+    {0, -1.f, 0},
+    {0, 1.f, 0},
+    {1.f, 0, 0},
+    {-1.f, 0, 0}
+};
 
 void rejection_helper_init() {
     movement_state = MOVING;
 }
 
-void rejection_helper_update(float acc[3], bool *moving, int *rejected_display) {
+void rejection_helper_update(float acc[3], bool *moving, int *rejected_direction) {
     static float prev_acc[3] = {0};
 
     uint64_t current_time_us = time_us_64();
@@ -33,6 +40,20 @@ void rejection_helper_update(float acc[3], bool *moving, int *rejected_display) 
         prev_acc[i] = acc[i];
     }
     float diff_mag = magnitude(diff);
+
+    float max_abs_dp = 0;
+    int max_index = 0;
+
+    for (int s = 0; s < NUM_SCREENS; s++) {
+        for (int i = 0; i < 3; i++) {
+            float dp = dot_product(display_vectors[s], acc);
+            if (dp > max_abs_dp) {
+                max_abs_dp = dp;
+                max_index = s;
+            }
+        }
+    }
+    *rejected_direction = max_index;
 
     switch (movement_state) {
         case NOT_MOVING:
