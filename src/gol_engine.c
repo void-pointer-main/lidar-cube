@@ -86,8 +86,7 @@ static bool cell_is_alive(int screen, int row, int col) {
         return false;
     }
 
-    switch (screen)
-    {
+    switch (screen) {
         case FRONT:
             if (row == -1)
                 return current_generation[TOP][N][col];

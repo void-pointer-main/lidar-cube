@@ -122,9 +122,6 @@ void displays_get_collective_pixel_dists(int16_t collective_pixel_dists[NUM_SCRE
 
 void displays_distance_to_color_write() {
     for (int i = 0; i < NUM_SCREENS; i++) {
-        // ws2812_blank_screen(i);
-        // ws2812_write_screen_pixel(4, 0, 0, rgb_modified_intensity(distance_to_rgb_t_f(0.), 1, 8));
-        // ws2812_write_screen_pixel(4, 0, 7, rgb_modified_intensity(distance_to_rgb_t_f(1.), 1, 8));
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
             for (int c = 0; c < NUM_DISP_ROWS; c++) {
                 float t = (float)(_collective_pixel_dists[i][r][c]) / MAX_DIST_MM;

@@ -48,6 +48,7 @@ add_executable(Lidar_Cube src/Lidar_Cube.c
         src/lidar_rejection_helper.c
         src/gol_engine.c
         src/mode_state_machine.c
+        src/membrane_engine.c
         ISM330IS-PID/ism330is_reg.c)
 
 pico_set_program_name(Lidar_Cube "Lidar_Cube")

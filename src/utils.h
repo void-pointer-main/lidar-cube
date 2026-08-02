@@ -72,13 +72,11 @@ inline rgb_t rgb_modified_intensity(rgb_t rgb, uint mult, uint div) {
 
 rgb_t hsv2rgb_t_f(float h, float s, float v);
 
+// uses hsluv
 rgb_t distance_to_rgb_t_f(float distance);
 
 // only for the terminal
-
-void hsv_to_rgb(float h, float s, float v,
-                       uint8_t *r, uint8_t *g, uint8_t *b);
-
+void hsv_to_rgb(float h, float s, float v, uint8_t *r, uint8_t *g, uint8_t *b);
 inline uint8_t rgb_to_ansi256(uint8_t r, uint8_t g, uint8_t b)
 {
     // map to 6x6x6 color cube (0–5 each channel)
@@ -88,7 +86,6 @@ inline uint8_t rgb_to_ansi256(uint8_t r, uint8_t g, uint8_t b)
 
     return (uint8_t)(16 + 36 * ri + 6 * gi + bi);
 }
-
 uint8_t mm_to_color_id(int16_t mm);
 
 void i2c_test(i2c_inst_t *i2c);

@@ -13,6 +13,7 @@
 #include "mode_state_machine.h"
 
 #include "gol_engine.h"
+#include "membrane_engine.h"
 
 #include <stdint.h>
 #include <math.h>
@@ -43,8 +44,8 @@ int main()
     mode_state_machine_init();
 
     displays_init();
-    // my_assert(lidars_init() == 0, __FILE__, __LINE__);
-    // lidars_start_sampling();
+    my_assert(lidars_init() == 0, __FILE__, __LINE__);
+    lidars_start_sampling();
 
     // PCF_set_mask(0x00);
 
@@ -60,7 +61,7 @@ int main()
         int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 
         // uint32_t st = time_us_32();
-        // lidars_sample(results_mm);
+        lidars_sample(results_mm);
         // uint32_t et = time_us_32();
         
         ism_sample(acc, gyro);
@@ -68,7 +69,9 @@ int main()
         // printf("%.2f,%.2f,%.2f\n", gyro[0], gyro[1], gyro[2]);
 
         if (mode_state_machine_update(gyro)) {
+            mode_release(lidar_cube_mode);
             lidar_cube_mode = (lidar_cube_mode + 1) % NUM_MODES;
+            mode_init(lidar_cube_mode);
         }
 
         bool moving;
@@ -81,7 +84,7 @@ int main()
 
         switch (lidar_cube_mode) {
             case PROJECTION:
-                
+                displays_distance_to_color_write();
                 break;
 
             case GOL:
@@ -89,16 +92,14 @@ int main()
                 break;
 
             case RIPPLE:
-                
+                // membrane_update_and_write(collective_pixel_dists);
                 break;
             
             default:
                 break;
-            }
+        }
 
-        // ws2812_display_screens();
-
-        sleep_ms(50);
+        ws2812_display_screens();
     }
 }
 
@@ -106,7 +107,7 @@ void mode_init(mode_t mode) {
     switch (mode)
     {
     case PROJECTION:
-        
+        membrane_init();
         break;
 
     case GOL:
@@ -134,7 +135,7 @@ void mode_release(mode_t mode) {
         break;
 
     case RIPPLE:
-        
+        membrane_release();
         break;
     
     default:
