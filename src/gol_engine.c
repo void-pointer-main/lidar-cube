@@ -6,7 +6,7 @@
 // just to clean the indexing in cell_is_alive up
 #define N (NUM_ROWS-1)
 
-#define LOWER_ACTIVATION_THRESH_mm 50
+#define LOWER_ACTIVATION_THRESH_mm 10
 #define UPPER_ACTIVATION_THRESH_mm 100
 
 bool current_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};

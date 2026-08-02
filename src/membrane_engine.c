@@ -11,17 +11,20 @@
 #define NUM_KEPT_STEPS 3
 
 // essentially defines the speed at which the waves will propagate
-#define SIM_COEF 1.f
+#define SIM_COEF 0.4f
 
 #define DISSIPATION 0.99f
-#define INPUT_COEF 0.1f
+#define INPUT_COEF 0.05f
 
-#define MAX_EXPECTED_MEMBRANE_DEFLECTION 10.f
+#define MAX_EXPECTED_MEMBRANE_DEFLECTION 300.f
+#define BASE_INTENSITY 96u
 
 float membrane_surface_height[NUM_KEPT_STEPS][NUM_SCREENS][NUM_ROWS][NUM_COLS];
 
 static float membrane_cell_height(int screen, int row, int col, int step);
 static float next_cell_height(int screen, int row, int col);
+
+static rgb_t height_to_hot_cold_hue_rgb_t(float height);
 
 void membrane_init() {
     memset(membrane_surface_height, 0, sizeof(membrane_surface_height));
@@ -40,9 +43,7 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
             for (int c = 0; c < NUM_COLS; c++) {
                 membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * (dist_array[s][r][c] - prev_dist_array[s][r][c]);
 
-                float hue = membrane_surface_height[0][s][r][c]/MAX_EXPECTED_MEMBRANE_DEFLECTION;
-
-                // ws2812_write_screen_pixel(s, r, c, hsv2rgb_t_f());
+                ws2812_write_screen_pixel(s, r, c, height_to_hot_cold_hue_rgb_t(membrane_surface_height[0][s][r][c]));
             }
         }
     }
@@ -151,4 +152,32 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         default:
             return false;
     }
+}
+
+static rgb_t height_to_hot_cold_hue_rgb_t(float height) {
+    rgb_t tmp;
+
+    float x = height / MAX_EXPECTED_MEMBRANE_DEFLECTION;
+
+    if (x > 1.f) {
+        x = 1.f;
+    } else if (x < -1.f) {
+        x = -1.f;
+    }
+
+    if (x < 0.f) {
+        float t = x + 1.0f;
+
+        tmp.r = (uint8_t)(BASE_INTENSITY * t);
+        tmp.g = (uint8_t)(BASE_INTENSITY * t);
+        tmp.b = BASE_INTENSITY;
+    } else {
+        float t = 1.0f - x;
+
+        tmp.r = BASE_INTENSITY;
+        tmp.g = (uint8_t)(BASE_INTENSITY * t);
+        tmp.b = (uint8_t)(BASE_INTENSITY * t);
+    }
+
+    return tmp;
 }

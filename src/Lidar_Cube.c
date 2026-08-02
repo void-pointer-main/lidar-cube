@@ -54,16 +54,14 @@ int main()
     float acc[3] = {0}, gyro[3] = {0};
 
 
-    lidar_cube_mode = GOL;
-    gol_init();
+    lidar_cube_mode = RIPPLE;
+    membrane_init();
 
     while (1) {
         int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 
-        // uint32_t st = time_us_32();
         lidars_sample(results_mm);
-        // uint32_t et = time_us_32();
-        
+
         ism_sample(acc, gyro);
 
         // printf("%.2f,%.2f,%.2f\n", acc[0], acc[1], acc[2]);
@@ -82,6 +80,7 @@ int main()
         int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
         displays_get_collective_pixel_dists(collective_pixel_dists);
 
+        uint32_t st = time_us_32();
         switch (lidar_cube_mode) {
             case PROJECTION:
                 displays_distance_to_color_write();
@@ -92,12 +91,15 @@ int main()
                 break;
 
             case RIPPLE:
-                // membrane_update_and_write(collective_pixel_dists);
+                membrane_update_and_write(collective_pixel_dists);
                 break;
             
             default:
                 break;
         }
+        uint32_t et = time_us_32();
+        
+        printf("%d\n", et-st);
 
         ws2812_display_screens();
     }

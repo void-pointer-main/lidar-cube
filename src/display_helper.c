@@ -92,11 +92,18 @@ void displays_init() {
 }
 
 void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction) {
-    for (int i = 0; i < NUM_SCREENS; i++) {
 
-        if (i == direction && reject_direction) {
-            continue;
+    if (reject_direction) {
+        for (int edge = 0; edge < NUM_LREF_EDGES; edge++) {
+            for (int r = 0; r < VLX_NUM_ROWS; r++) {
+                for (int c = 0; c < VLX_NUM_COLS; c++) {
+                    results_mm[displays[direction].lid_refs[edge].results_array_index][r][c] = MAX_DIST_MM;
+                }
+            }
         }
+    }
+
+    for (int i = 0; i < NUM_SCREENS; i++) {
 
         // Handle mixing of pixels
         for (int r = 0; r < NUM_DISP_ROWS; r++) {
@@ -133,7 +140,7 @@ void displays_distance_to_color_write() {
                 // float t = (float)results_mm[i][r][c] / MAX_DIST_MM;
                 // printf("%.2f\n", t);
                 // t = powf(t, 0.6f); // possible adjusting of distance relation
-                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 6, 96));
+                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 13, 96));
             }
         }
     }

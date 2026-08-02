@@ -240,7 +240,7 @@ static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_
                     } else {
                         new_res = res.distance_mm[index];
                     }
-                    results[j][r][c] = new_res;// * 3/4 + results[j][r][c] * 1/4; possible exp filtration
+                    results[j][r][c] = new_res;
                 }
             }
         }
