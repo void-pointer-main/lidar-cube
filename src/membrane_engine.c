@@ -4,22 +4,24 @@
 
 #include "utils.h"
 
-// just to clean the indexing in membrane_cell_height up
-#define N (NUM_ROWS-1)
-
 // we keep the next, current and previous iteration in the same array for convenience
 #define NUM_KEPT_STEPS 3
 
 // essentially defines the speed at which the waves will propagate
-#define SIM_COEF 0.4f
+#define SIM_COEF 0.5f
 
-#define DISSIPATION 0.99f
-#define INPUT_COEF 0.05f
+#define DISSIPATION 0.97f
+#define INPUT_COEF 0.1f
 
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 300.f
-#define BASE_INTENSITY 96u
+#define BASE_INTENSITY 64u
 
-float membrane_surface_height[NUM_KEPT_STEPS][NUM_SCREENS][NUM_ROWS][NUM_COLS];
+#define MULT 2 // must be power of 2
+#define MEMBRANE_RES (NUM_ROWS*MULT)
+// just to clean the indexing in membrane_cell_height up
+#define N (MEMBRANE_RES-1)
+
+float membrane_surface_height[NUM_KEPT_STEPS][NUM_SCREENS][MEMBRANE_RES][MEMBRANE_RES];
 
 static float membrane_cell_height(int screen, int row, int col, int step);
 static float next_cell_height(int screen, int row, int col);
@@ -39,11 +41,26 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
 
     // calculate the update
     for (int s = 0; s < NUM_SCREENS; s++) {
+        for (int r = 0; r < MEMBRANE_RES; r++) {
+            for (int c = 0; c < MEMBRANE_RES; c++) {
+                int16_t insertion_dist = dist_array[s][r/MULT][c/MULT] - prev_dist_array[s][r/MULT][c/MULT];
+
+                membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * insertion_dist;
+            }
+        }
+    }
+
+    for (int s = 0; s < NUM_SCREENS; s++) {
         for (int r = 0; r < NUM_ROWS; r++) {
             for (int c = 0; c < NUM_COLS; c++) {
-                membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * (dist_array[s][r][c] - prev_dist_array[s][r][c]);
-
-                ws2812_write_screen_pixel(s, r, c, height_to_hot_cold_hue_rgb_t(membrane_surface_height[0][s][r][c]));
+                ws2812_write_screen_pixel(s, r, c, height_to_hot_cold_hue_rgb_t(
+                    0.25 * (
+                        membrane_surface_height[0][s][r][c]
+                        + membrane_surface_height[0][s][r+1][c]
+                        + membrane_surface_height[0][s][r][c+1]
+                        + membrane_surface_height[0][s][r+1][c+1]
+                    )
+                ));
             }
         }
     }
@@ -69,9 +86,9 @@ static float next_cell_height(int screen, int row, int col) {
 static float membrane_cell_height(int screen, int row, int col, int step) {
     // Degenerate case: diagonal corner outside the cube.
     if ((row == -1 && col == -1) ||
-        (row == NUM_ROWS && col == NUM_COLS) ||
-        (row == -1 && col == NUM_COLS) ||
-        (row == NUM_ROWS && col == -1))
+        (row == MEMBRANE_RES && col == MEMBRANE_RES) ||
+        (row == -1 && col == MEMBRANE_RES) ||
+        (row == MEMBRANE_RES && col == -1))
     {
         return 0.f;
     }
@@ -80,11 +97,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case FRONT:
             if (row == -1)
                 return membrane_surface_height[step][TOP][N][col];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][BOTTOM][0][col];
             else if (col == -1)
                 return membrane_surface_height[step][LEFT][row][N];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][RIGHT][row][0];
             else
                 return membrane_surface_height[step][FRONT][row][col];
@@ -92,11 +109,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case BACK:
             if (row == -1)
                 return membrane_surface_height[step][TOP][0][N - col];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][BOTTOM][0][N - col];
             else if (col == -1)
                 return membrane_surface_height[step][RIGHT][row][N];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][LEFT][row][0];
             else
                 return membrane_surface_height[step][BACK][row][col];
@@ -104,11 +121,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case LEFT:
             if (row == -1)
                 return membrane_surface_height[step][TOP][col][0];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][BOTTOM][N - col][0];
             else if (col == -1)
                 return membrane_surface_height[step][BACK][row][N];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][FRONT][row][0];
             else
                 return membrane_surface_height[step][LEFT][row][col];
@@ -116,11 +133,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case RIGHT:
             if (row == -1)
                 return membrane_surface_height[step][TOP][N - col][N];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][BOTTOM][col][N];
             else if (col == -1)
                 return membrane_surface_height[step][FRONT][row][N];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][BACK][row][0];
             else
                 return membrane_surface_height[step][RIGHT][row][col];
@@ -128,11 +145,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case TOP:
             if (row == -1)
                 return membrane_surface_height[step][BACK][0][N - col];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][FRONT][0][col];
             else if (col == -1)
                 return membrane_surface_height[step][LEFT][0][row];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][RIGHT][0][N - row];
             else
                 return membrane_surface_height[step][TOP][row][col];
@@ -140,11 +157,11 @@ static float membrane_cell_height(int screen, int row, int col, int step) {
         case BOTTOM:
             if (row == -1)
                 return membrane_surface_height[step][FRONT][N][col];
-            else if (row == NUM_ROWS)
+            else if (row == MEMBRANE_RES)
                 return membrane_surface_height[step][BACK][N][N - col];
             else if (col == -1)
                 return membrane_surface_height[step][LEFT][N][N - row];
-            else if (col == NUM_COLS)
+            else if (col == MEMBRANE_RES)
                 return membrane_surface_height[step][RIGHT][N][row];
             else
                 return membrane_surface_height[step][BOTTOM][row][col];
