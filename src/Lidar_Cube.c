@@ -99,7 +99,7 @@ int main()
         }
         uint32_t et = time_us_32();
         
-        printf("%d\n", et-st);
+        // printf("%d\n", et-st);
 
         ws2812_display_screens();
     }

@@ -140,7 +140,7 @@ void displays_distance_to_color_write() {
                 // float t = (float)results_mm[i][r][c] / MAX_DIST_MM;
                 // printf("%.2f\n", t);
                 // t = powf(t, 0.6f); // possible adjusting of distance relation
-                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 13, 96));
+                ws2812_write_screen_pixel(i, r, c, rgb_modified_intensity(distance_to_rgb_t_f(t), 13, 64));
             }
         }
     }

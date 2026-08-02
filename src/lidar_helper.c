@@ -7,7 +7,7 @@
 #include "PCF8575_helper.h"
 #include "utils.h"
 
-#define RANGING_FREQUENCY_HZ 20
+#define RANGING_FREQUENCY_HZ 18
 #define SHARPENER_PERCENTAGE 15
 #define TEMP_CALIBRATION_LOOP_CNT 500
 #define INTEGRATION_TIME_MS 2
@@ -183,6 +183,8 @@ void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
     multicore_fifo_push_blocking(0);
 
     lidars_sample_group(results, true);
+
+    // printf("%d\n", lidars[0].temp);
 
     multicore_fifo_pop_blocking();
     memcpy(&(results[NUM_LIDARS/2]), core1_results, NUM_LIDARS/2*VLX_NUM_ROWS*VLX_NUM_COLS*sizeof(int16_t));
