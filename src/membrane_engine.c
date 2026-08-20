@@ -8,15 +8,15 @@
 #define NUM_KEPT_STEPS 3
 
 // essentially defines the speed at which the waves will propagate
-#define SIM_COEF 0.5f
+#define SIM_COEF 0.4f
 
-#define DISSIPATION 0.95f
-#define INPUT_COEF 0.2f
+#define DISSIPATION 0.98f
+#define INPUT_COEF 0.1f
 
-#define MAX_EXPECTED_MEMBRANE_DEFLECTION 400.f
-#define BASE_INTENSITY 64u
+#define MAX_EXPECTED_MEMBRANE_DEFLECTION 800.f
+#define BASE_INTENSITY 50u
 
-#define MULT 2 // must be power of 2
+#define MULT 4 // must be power of 2
 #define MEMBRANE_RES (NUM_ROWS*MULT)
 // just to clean the indexing in membrane_cell_height up
 #define N (MEMBRANE_RES-1)
@@ -55,11 +55,11 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
             for (int c = 0; c < NUM_COLS; c++) {
                 ws2812_write_screen_pixel(s, r, c, height_to_hot_cold_hue_rgb_t(
                     0.25 * (
-                        membrane_surface_height[0][s][r][c]
-                        + membrane_surface_height[0][s][r+1][c]
-                        + membrane_surface_height[0][s][r][c+1]
-                        + membrane_surface_height[0][s][r+1][c+1]
-                    )
+                        membrane_surface_height[0][s][r*MULT][c*MULT]
+                        + membrane_surface_height[0][s][r*MULT+1][c*MULT]
+                        + membrane_surface_height[0][s][r*MULT][c*MULT+1]
+                        + membrane_surface_height[0][s][r*MULT+1][c*MULT+1]
+                    ) // average out cell group (downscaling)
                 ));
             }
         }
@@ -185,16 +185,30 @@ static rgb_t height_to_hot_cold_hue_rgb_t(float height) {
     if (x < 0.f) {
         float t = x + 1.0f;
 
-        tmp.r = (uint8_t)(BASE_INTENSITY * t);
-        tmp.g = (uint8_t)(BASE_INTENSITY * t);
-        tmp.b = BASE_INTENSITY;
+        tmp.r = 0.f;
+        tmp.g = 0.f;
+        tmp.b = (uint8_t)BASE_INTENSITY*(1.f-t);
     } else {
         float t = 1.0f - x;
 
-        tmp.r = BASE_INTENSITY;
-        tmp.g = (uint8_t)(BASE_INTENSITY * t);
-        tmp.b = (uint8_t)(BASE_INTENSITY * t);
+        tmp.r = (uint8_t)BASE_INTENSITY*(1.f-t);
+        tmp.g = 0.f;
+        tmp.b = 0.f;
     }
+
+    // if (x < 0.f) {
+    //     float t = x + 1.0f;
+
+    //     tmp.r = (uint8_t)(BASE_INTENSITY * t);
+    //     tmp.g = (uint8_t)(BASE_INTENSITY * t);
+    //     tmp.b = BASE_INTENSITY;
+    // } else {
+    //     float t = 1.0f - x;
+
+    //     tmp.r = BASE_INTENSITY;
+    //     tmp.g = (uint8_t)(BASE_INTENSITY * t);
+    //     tmp.b = (uint8_t)(BASE_INTENSITY * t);
+    // }
 
     return tmp;
 }

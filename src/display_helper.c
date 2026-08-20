@@ -89,6 +89,18 @@ void displays_init() {
     displays[5].lid_refs[LREF_EDGE_LEFT].half_plane = HP_TOP;
     displays[5].lid_refs[LREF_EDGE_RIGHT].results_array_index = 6;
     displays[5].lid_refs[LREF_EDGE_RIGHT].half_plane = HP_TOP;
+
+    // useful for debugging
+    // for (int i = 1; i < NUM_SCREENS; i++) {
+    //     displays[i].lid_refs[LREF_EDGE_TOP].results_array_index = 11;
+    //     displays[i].lid_refs[LREF_EDGE_TOP].half_plane = HP_BOTTOM;
+    //     displays[i].lid_refs[LREF_EDGE_BOTTOM].results_array_index = 11;
+    //     displays[i].lid_refs[LREF_EDGE_BOTTOM].half_plane = HP_BOTTOM;
+    //     displays[i].lid_refs[LREF_EDGE_LEFT].results_array_index = 11;
+    //     displays[i].lid_refs[LREF_EDGE_LEFT].half_plane = HP_TOP;
+    //     displays[i].lid_refs[LREF_EDGE_RIGHT].results_array_index = 11;
+    //     displays[i].lid_refs[LREF_EDGE_RIGHT].half_plane = HP_TOP;
+    // }
 }
 
 void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction) {

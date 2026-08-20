@@ -22,11 +22,11 @@ typedef struct {
     uint8_t b;
 } rgb_t;
 
-inline int max(int a, int b) {
+static inline int max(int a, int b) {
     return a > b ? a : b;
 }
 
-inline int min(int a, int b) {
+static inline int min(int a, int b) {
     return a < b ? a : b;
 }
 
@@ -39,7 +39,7 @@ static void my_assert(bool expression, const char *filename, int line) {
     }
 }
 
-inline rgb_t rgb2rgb_t_f(uint8_t r, uint8_t g, uint8_t b) {
+static inline rgb_t rgb2rgb_t_f(uint8_t r, uint8_t g, uint8_t b) {
     rgb_t tmp;
     tmp.r = r;
     tmp.g = g;
@@ -47,7 +47,7 @@ inline rgb_t rgb2rgb_t_f(uint8_t r, uint8_t g, uint8_t b) {
     return tmp;
 }
 
-inline rgb_t hex2rgb_t_f(uint32_t rgb) {
+static inline rgb_t hex2rgb_t_f(uint32_t rgb) {
     rgb_t tmp;
     tmp.r = (rgb >> 16) & 0xFF;
     tmp.g = (rgb >> 8) & 0xFF;
@@ -55,7 +55,7 @@ inline rgb_t hex2rgb_t_f(uint32_t rgb) {
     return tmp;
 }
 
-inline rgb_t hex2rgb_t_f_modified_intensity(uint32_t rgb, uint mult, uint div) {
+static inline rgb_t hex2rgb_t_f_modified_intensity(uint32_t rgb, uint mult, uint div) {
     rgb_t tmp;
     tmp.r = ((rgb >> 16) & 0xFF)*mult/div;
     tmp.g = ((rgb >> 8) & 0xFF)*mult/div;
@@ -63,7 +63,7 @@ inline rgb_t hex2rgb_t_f_modified_intensity(uint32_t rgb, uint mult, uint div) {
     return tmp;
 }
 
-inline rgb_t rgb_modified_intensity(rgb_t rgb, uint mult, uint div) {
+static inline rgb_t rgb_modified_intensity(rgb_t rgb, uint mult, uint div) {
     rgb.r = rgb.r * mult / div;
     rgb.g = rgb.g * mult / div;
     rgb.b = rgb.b * mult / div;

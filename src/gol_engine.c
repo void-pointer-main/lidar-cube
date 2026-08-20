@@ -23,15 +23,25 @@ void gol_release() {
 }
 
 void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
+
     bool next_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
 
-    for (int s = 0; s < NUM_SCREENS; s++) {
-        for (int r = 0; r < NUM_ROWS; r++) {
-            for (int c = 0; c < NUM_COLS; c++) {
-                next_generation[s][r][c] = cell_will_be_alive(s, r, c);
+
+    
+    // static int loop_skip = 0;
+    // if (loop_skip == 1) {
+    //     loop_skip = 0;
+    //     return;
+    // } else {
+    //     loop_skip++;
+        for (int s = 0; s < NUM_SCREENS; s++) {
+            for (int r = 0; r < NUM_ROWS; r++) {
+                for (int c = 0; c < NUM_COLS; c++) {
+                    next_generation[s][r][c] = cell_will_be_alive(s, r, c);
+                }
             }
         }
-    }
+    // }
 
     for (int s = 0; s < NUM_SCREENS; s++) {
         ws2812_blank_screen(s);
