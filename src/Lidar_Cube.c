@@ -8,9 +8,9 @@
 #include "display_helper.h"
 #include "ism_helper.h"
 #include "lidar_rejection_helper.h"
-// #include "PCF8575_helper.h"
 #include "ws2812_helper.h"
 #include "mode_state_machine.h"
+#include "screen_saver.h"
 
 #include "gol_engine.h"
 #include "membrane_engine.h"
@@ -22,6 +22,7 @@ typedef enum {
     PROJECTION,
     GOL,
     RIPPLE,
+    LOW_POWER,
     NUM_MODES,
 } mode_t;
 
@@ -47,21 +48,14 @@ int main()
     my_assert(lidars_init() == 0, __FILE__, __LINE__);
     lidars_start_sampling();
 
-    // PCF_set_mask(0x00);
-
     printf("init success\n");
 
     float acc[3] = {0}, gyro[3] = {0};
 
-
-    lidar_cube_mode = RIPPLE;
+    lidar_cube_mode = LOW_POWER;
     membrane_init();
 
     while (1) {
-        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
-
-        lidars_sample(results_mm);
-
         ism_sample(acc, gyro);
 
         // printf("%.2f,%.2f,%.2f\n", acc[0], acc[1], acc[2]);
@@ -76,9 +70,15 @@ int main()
         int dir;
         rejection_helper_update(acc, &moving, &dir);
 
-        displays_project(results_mm, !moving, dir, lidar_cube_mode == RIPPLE);
-        int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
-        displays_get_collective_pixel_dists(collective_pixel_dists);
+        int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
+        int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
+        if (lidar_cube_mode != LOW_POWER) {
+            lidars_sample(results_mm);
+            displays_project(results_mm, !moving, dir, lidar_cube_mode == RIPPLE);
+            displays_get_collective_pixel_dists(collective_pixel_dists);
+        } else {
+            sleep_ms(30);
+        }
 
         uint32_t st = time_us_32();
         switch (lidar_cube_mode) {
@@ -93,55 +93,69 @@ int main()
             case RIPPLE:
                 membrane_update_and_write(collective_pixel_dists);
                 break;
+
+            case LOW_POWER:
+                screen_saver_update();
+                break;
             
             default:
                 break;
         }
         uint32_t et = time_us_32();
         
-        printf("%d\n", et-st);
+        // printf("%d\n", et-st);
 
         ws2812_display_screens();
     }
 }
 
 void mode_init(mode_t mode) {
-    switch (mode)
-    {
-    case PROJECTION:
-        membrane_init();
-        break;
+    switch (mode) {
+        case PROJECTION:
+            break;
 
-    case GOL:
-        gol_init();
-        break;
+        case GOL:
+            gol_init();
+            break;
 
-    case RIPPLE:
+        case RIPPLE:
+            membrane_init();
+            break;
+
+        case LOW_POWER:
+            lidars_pause_sampling();
+            screen_saver_init();
+            break;
         
-        break;
-    
-    default:
-        break;
+        default:
+            break;
     }
 }
 
 void mode_release(mode_t mode) {
-        switch (mode)
-    {
-    case PROJECTION:
-        
-        break;
+    switch (mode) {
+        case PROJECTION:
+            break;
 
-    case GOL:
-        gol_release();
-        break;
+        case GOL:
+            gol_release();
+            break;
 
-    case RIPPLE:
-        membrane_release();
-        break;
-    
-    default:
-        break;
+        case RIPPLE:
+            membrane_release();
+            break;
+
+        case LOW_POWER:
+            screen_saver_release();
+            for (int s = 0; s < NUM_SCREENS; s++) {
+                ws2812_blank_screen(s);
+            }
+            ws2812_display_screens();
+            lidars_start_sampling();
+            break;
+
+        default:
+            break;
     }
 }
 

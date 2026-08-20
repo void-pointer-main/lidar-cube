@@ -3,6 +3,8 @@
 #include <string.h>
 #include "utils.h"
 
+#define NUM_LOOP_SKIPS 1 // in case we want to slow the engine down
+
 // just to clean the indexing in cell_is_alive up
 #define N (NUM_ROWS-1)
 
@@ -26,14 +28,13 @@ void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
 
     bool next_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
 
+    static int loop_skip = 0;
+    if (loop_skip == NUM_LOOP_SKIPS) {
+        loop_skip = 0;
+        return;
+    } else {
+        loop_skip++;
 
-    
-    // static int loop_skip = 0;
-    // if (loop_skip == 1) {
-    //     loop_skip = 0;
-    //     return;
-    // } else {
-    //     loop_skip++;
         for (int s = 0; s < NUM_SCREENS; s++) {
             for (int r = 0; r < NUM_ROWS; r++) {
                 for (int c = 0; c < NUM_COLS; c++) {
@@ -41,7 +42,7 @@ void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
                 }
             }
         }
-    // }
+    }
 
     for (int s = 0; s < NUM_SCREENS; s++) {
         ws2812_blank_screen(s);

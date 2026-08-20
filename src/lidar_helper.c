@@ -7,7 +7,7 @@
 #include "PCF8575_helper.h"
 #include "utils.h"
 
-#define RANGING_FREQUENCY_HZ 18
+#define RANGING_FREQUENCY_HZ 20
 #define SHARPENER_PERCENTAGE 15
 #define TEMP_CALIBRATION_LOOP_CNT 500
 #define INTEGRATION_TIME_MS 2
@@ -170,13 +170,28 @@ end:
 }
 
 void lidars_start_sampling() {
-    uint32_t previous_time = time_us_32();
+    static bool first_run = true;
     for (int i = 0; i < NUM_LIDARS; i++) {
         if (ignore_sensor_flag[i]) continue;
 
+        vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_WAKEUP);
         vl53l7cx_start_ranging(&(lidars[i].dev));
     }
-    multicore_launch_core1(core_1_sampling);
+
+    if (first_run) {
+        multicore_launch_core1(core_1_sampling);
+        first_run = false;
+    }
+}
+
+void lidars_pause_sampling() {
+    for (int i = 0; i < NUM_LIDARS; i++) {
+        if (ignore_sensor_flag[i]) continue;
+
+        vl53l7cx_stop_ranging(&(lidars[i].dev));
+        vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_SLEEP);
+    }
+    // we don't need to stop the second core, since it waits on the blocking pop function
 }
 
 void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
