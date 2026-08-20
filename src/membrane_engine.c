@@ -8,15 +8,15 @@
 #define NUM_KEPT_STEPS 3
 
 // essentially defines the speed at which the waves will propagate
-#define SIM_COEF 0.4f
+#define SIM_COEF 0.7f
 
-#define DISSIPATION 0.98f
+#define DISSIPATION 0.96f
 #define INPUT_COEF 0.1f
 
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 800.f
-#define BASE_INTENSITY 50u
+#define BASE_INTENSITY 25u
 
-#define MULT 4 // must be power of 2
+#define MULT 8 // must be power of 2
 #define MEMBRANE_RES (NUM_ROWS*MULT)
 // just to clean the indexing in membrane_cell_height up
 #define N (MEMBRANE_RES-1)
@@ -27,6 +27,16 @@ static float membrane_cell_height(int screen, int row, int col, int step);
 static float next_cell_height(int screen, int row, int col);
 
 static rgb_t height_to_hot_cold_hue_rgb_t(float height);
+
+static inline float cell_region_average(int screen, int disp_row, int disp_col, int step) {
+    float sum = 0.f;
+    for (int k = 0; k < MULT; k++) {
+        for (int l = 0; l < MULT; l++) {
+            sum += membrane_surface_height[step][screen][disp_row*MULT+k][disp_col*MULT+l]/MULT;
+        }
+    }
+    return sum;
+}
 
 void membrane_init() {
     memset(membrane_surface_height, 0, sizeof(membrane_surface_height));
@@ -51,15 +61,16 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
     }
 
     for (int s = 0; s < NUM_SCREENS; s++) {
-        for (int r = 0; r < NUM_ROWS; r++) {
-            for (int c = 0; c < NUM_COLS; c++) {
-                ws2812_write_screen_pixel(s, r, c, height_to_hot_cold_hue_rgb_t(
-                    0.25 * (
-                        membrane_surface_height[0][s][r*MULT][c*MULT]
-                        + membrane_surface_height[0][s][r*MULT+1][c*MULT]
-                        + membrane_surface_height[0][s][r*MULT][c*MULT+1]
-                        + membrane_surface_height[0][s][r*MULT+1][c*MULT+1]
-                    ) // average out cell group (downscaling)
+        for (int dr = 0; dr < NUM_ROWS; dr++) {
+            for (int dc = 0; dc < NUM_COLS; dc++) {
+                ws2812_write_screen_pixel(s, dr, dc, height_to_hot_cold_hue_rgb_t(
+                    // 0.25 * (
+                    //     membrane_surface_height[0][s][dr*MULT][dc*MULT]
+                    //     + membrane_surface_height[0][s][dr*MULT+1][dc*MULT]
+                    //     + membrane_surface_height[0][s][dr*MULT][dc*MULT+1]
+                    //     + membrane_surface_height[0][s][dr*MULT+1][dc*MULT+1]
+                    // ) // average out cell group (downscaling)
+                    cell_region_average(s, dr, dc, 0)
                 ));
             }
         }
@@ -181,7 +192,21 @@ static rgb_t height_to_hot_cold_hue_rgb_t(float height) {
     } else if (x < -1.f) {
         x = -1.f;
     }
+    
+    // if (x < 0.f) {
+    //     float t = x + 1.0f;
 
+    //     tmp.r = (uint8_t)BASE_INTENSITY*t;
+    //     tmp.g = (uint8_t)BASE_INTENSITY*t;
+    //     tmp.b = (uint8_t)BASE_INTENSITY*t;
+    // } else {
+    //     float t = 1.0f - x;
+
+    //     tmp.r = (uint8_t)BASE_INTENSITY*t;
+    //     tmp.g = (uint8_t)BASE_INTENSITY*t;
+    //     tmp.b = (uint8_t)BASE_INTENSITY*t;
+    // }
+    
     if (x < 0.f) {
         float t = x + 1.0f;
 

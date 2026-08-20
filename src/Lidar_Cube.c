@@ -76,7 +76,7 @@ int main()
         int dir;
         rejection_helper_update(acc, &moving, &dir);
 
-        displays_project(results_mm, !moving, dir);
+        displays_project(results_mm, !moving, dir, lidar_cube_mode == RIPPLE);
         int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS];
         displays_get_collective_pixel_dists(collective_pixel_dists);
 
@@ -99,7 +99,7 @@ int main()
         }
         uint32_t et = time_us_32();
         
-        // printf("%d\n", et-st);
+        printf("%d\n", et-st);
 
         ws2812_display_screens();
     }
