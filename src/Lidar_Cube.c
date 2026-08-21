@@ -33,8 +33,7 @@ void init_i2c();
 void mode_init(mode_t mode);
 void mode_release(mode_t mode);
 
-int main()
-{
+int main() {
     stdio_init_all();
 
     init_i2c();
@@ -49,7 +48,7 @@ int main()
     uint32_t st = time_us_32();
     my_assert(lidars_init() == 0, __FILE__, __LINE__);
     uint32_t et = time_us_32();
-    printf("%d\n", et-st);
+    printf("lidar init time: %d us\n", et-st);
     
     lidars_start_sampling();
 
@@ -58,7 +57,7 @@ int main()
     float acc[3] = {0}, gyro[3] = {0};
 
     lidar_cube_mode = LOW_POWER;
-    membrane_init();
+    mode_init(lidar_cube_mode);
 
     while (1) {
         ism_sample(acc, gyro);

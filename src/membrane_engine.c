@@ -10,8 +10,8 @@
 // essentially defines the speed at which the waves will propagate
 #define SIM_COEF 0.7f // can't be any higher or sim diverges
 #define DISSIPATION 0.97f
-#define INPUT_COEF 0.1f
-#define MAX_EXPECTED_MEMBRANE_DEFLECTION 800.f
+#define INPUT_COEF 0.05f
+#define MAX_EXPECTED_MEMBRANE_DEFLECTION 1000.f
 #define BASE_INTENSITY 50u
 
 #define MULT 8 // must be power of 2

@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 #include "pico/multicore.h"
-#include "pico/mutex.h"
+#include "pico/util/queue.h"
+#include "hardware/sync.h"
 
 #include "vl53l7cx_api.h"
 #include "PCF8575_helper.h"
@@ -88,8 +89,9 @@ void core_1_sampling();
 static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS], bool i2c_0_group);
 static void lidar_unit_init(int i);
 
-// used for parallelising the initialisation of the lidars
-static mutex_t i2c1_mutex;
+static queue_t sync_queue_0;
+static queue_t sync_queue_1;
+static uint8_t data = 0;
 
 int lidars_init() {
 
@@ -103,23 +105,37 @@ int lidars_init() {
         lidars[i].dev.platform.i2c_inst = i2c1;
     }
 
+    // enable irq handlers so that we can register a data ready interrupt
+    for (int i = 0; i < NUM_LIDARS; i++) {
+        lidars[i].data_ready = false;
+        gpio_init(interrupt_pins[i]);
+        gpio_set_dir(interrupt_pins[i], false);
+        gpio_pull_up(interrupt_pins[i]);
+        gpio_set_irq_callback(data_ready_handler);
+        gpio_set_irq_enabled(interrupt_pins[i], GPIO_IRQ_EDGE_FALL, true);
+    }
+    // enable the data ready handler irq
+    irq_set_enabled(IO_IRQ_BANK0, true);
+
     PCF_set_mask(0x0000);
 
-    mutex_init(&i2c1_mutex);
-    mutex_enter_blocking(&i2c1_mutex);
+    uint sl0 = spin_lock_claim_unused(true);
+    uint sl1 = spin_lock_claim_unused(true);
+    queue_init_with_spinlock(&sync_queue_0, sizeof(uint8_t), 1, sl0);
+    queue_init_with_spinlock(&sync_queue_1, sizeof(uint8_t), 1, sl1);
+
     multicore_launch_core1(core_1_sampling);
 
     for (int i = 0; i < NUM_LIDARS/2; i++) {
         PCF_set_pin(i, 1);
-        mutex_exit(&i2c1_mutex);
+        queue_add_blocking(&sync_queue_0, &data);
 
         if (!ignore_sensor_flag[i]) {
             lidar_unit_init(i);
         }
 
-        mutex_enter_blocking(&i2c1_mutex);
+        queue_remove_blocking(&sync_queue_1, NULL);
         PCF_set_pin(i, 0);
-               
     }
 
     for (int i = 0; i < NUM_LIDARS; i++) {
@@ -127,16 +143,12 @@ int lidars_init() {
         PCF_set_pin(i, 1);
     }
 
-    // enable the data ready handler irq
-    irq_set_enabled(IO_IRQ_BANK0, true);
-
-end:
     return status;
 }
 
 void core_1_sampling() {
     for (int i = NUM_LIDARS/2; i < NUM_LIDARS; i++) {
-        mutex_enter_blocking(&i2c1_mutex);
+        queue_remove_blocking(&sync_queue_0, NULL);
         PCF_set_pin(i, 1);
 
         if (!ignore_sensor_flag[i]) {
@@ -144,29 +156,20 @@ void core_1_sampling() {
         }
 
         PCF_set_pin(i, 0);
-        mutex_exit(&i2c1_mutex);
+        queue_add_blocking(&sync_queue_1, &data);
     }
 
     while (1) {
-        multicore_fifo_pop_blocking();
+        queue_remove_blocking(&sync_queue_0, NULL);
 
         lidars_sample_group(core1_results, false);
 
-        multicore_fifo_push_blocking(0);
+        queue_add_blocking(&sync_queue_1, &data);
     }
 }
 
 static void lidar_unit_init(int i) {
-    lidars[i].data_ready = false;
-
     VL53L7CX_Configuration *lid_ptr = &(lidars[i].dev); // just for readability
-
-    // enable irq handler so that we can register a data ready interrupt
-    gpio_init(interrupt_pins[i]);
-    gpio_set_dir(interrupt_pins[i], false);
-    gpio_pull_up(interrupt_pins[i]);
-    gpio_set_irq_callback(data_ready_handler);
-    gpio_set_irq_enabled(interrupt_pins[i], GPIO_IRQ_EDGE_FALL, true);
 
     lid_ptr->platform.address = DEFAULT_VL53L7CX_ADDR;
 
@@ -210,8 +213,9 @@ void lidars_start_sampling() {
     for (int i = 0; i < NUM_LIDARS; i++) {
         if (ignore_sensor_flag[i]) continue;
 
-        vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_WAKEUP);
-        vl53l7cx_start_ranging(&(lidars[i].dev));
+        uint8_t status = vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_WAKEUP);
+        status |= vl53l7cx_start_ranging(&(lidars[i].dev));
+        my_assert(!status, __FILE__, __LINE__);
     }
 }
 
@@ -219,20 +223,20 @@ void lidars_pause_sampling() {
     for (int i = 0; i < NUM_LIDARS; i++) {
         if (ignore_sensor_flag[i]) continue;
 
-        vl53l7cx_stop_ranging(&(lidars[i].dev));
-        vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_SLEEP);
+        uint8_t status = vl53l7cx_stop_ranging(&(lidars[i].dev));
+        status |= vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_SLEEP);
+        my_assert(!status, __FILE__, __LINE__);
     }
-    // we don't need to stop the second core, since it waits on the blocking pop function
 }
 
 void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
-    multicore_fifo_push_blocking(0);
+    queue_add_blocking(&sync_queue_0, &data);
 
     lidars_sample_group(results, true);
 
     // printf("%d\n", lidars[0].temp);
 
-    multicore_fifo_pop_blocking();
+    queue_remove_blocking(&sync_queue_1, NULL);
     memcpy(&(results[NUM_LIDARS/2]), core1_results, NUM_LIDARS/2*VLX_NUM_ROWS*VLX_NUM_COLS*sizeof(int16_t));
 }
 
