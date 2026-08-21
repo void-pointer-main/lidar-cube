@@ -24,4 +24,8 @@ We can threshold the projected distance values to bring cells to life in the gri
 By [simulating the wave equation in 2D](https://beltoforion.de/en/recreational_mathematics/2d-wave-equation.php), we can achieve an interesting look.
 The membrane is actuated by incorporating the delta of the projected distance values (in effect, the velocity of the lidar distance values) into the discrete wave equation.
 
+# Demo
+
+https://github.com/user-attachments/assets/ebf097cb-a0b3-4255-b04e-6e387ea1ae2e
+
 
