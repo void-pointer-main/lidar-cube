@@ -22,12 +22,12 @@ static uint32_t image[8][8] = {
 #define BIAS 8.f
 #define OFFSET 0.4f
 
-static float loop_div = MAX_LOOP_DIV;
-static float increment = -INC;
+static float loop_div = 0.f;
+static float increment = INC;
 
 void screen_saver_init() {
-    loop_div = MAX_LOOP_DIV;
-    static float increment = -INC;
+    loop_div = 0.f;
+    static float increment = INC;
     for (int s = 0; s < NUM_SCREENS; s++) {
         ws2812_blank_screen(s);
     }

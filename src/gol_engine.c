@@ -11,13 +11,13 @@
 #define LOWER_ACTIVATION_THRESH_mm 10
 #define UPPER_ACTIVATION_THRESH_mm 100
 
-bool current_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
+static bool _current_generation[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
 
 static bool cell_will_be_alive(int screen, int row, int col);
 static bool cell_is_alive(int screen, int row, int col);
 
 void gol_init() {
-    memset(current_generation, 0, sizeof(current_generation));
+    memset(_current_generation, 0, sizeof(_current_generation));
 }
 
 void gol_release() {
@@ -31,10 +31,6 @@ void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
     static int loop_skip = 0;
     if (loop_skip == NUM_LOOP_SKIPS) {
         loop_skip = 0;
-        return;
-    } else {
-        loop_skip++;
-
         for (int s = 0; s < NUM_SCREENS; s++) {
             for (int r = 0; r < NUM_ROWS; r++) {
                 for (int c = 0; c < NUM_COLS; c++) {
@@ -42,21 +38,28 @@ void gol_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
                 }
             }
         }
+        for (int s = 0; s < NUM_SCREENS; s++) {
+            for (int r = 0; r < NUM_ROWS; r++) {
+                for (int c = 0; c < NUM_COLS; c++) {
+                    _current_generation[s][r][c] = next_generation[s][r][c];
+                }
+            }
+        }
+    } else {
+        loop_skip++;
     }
 
     for (int s = 0; s < NUM_SCREENS; s++) {
         ws2812_blank_screen(s);
         for (int r = 0; r < NUM_ROWS; r++) {
             for (int c = 0; c < NUM_COLS; c++) {
-                // normal progression
-                current_generation[s][r][c] = next_generation[s][r][c];
 
                 // additional forced user input
                 if (dist_array[s][r][c] > LOWER_ACTIVATION_THRESH_mm && dist_array[s][r][c] < UPPER_ACTIVATION_THRESH_mm) {
-                    current_generation[s][r][c] = true;
+                    _current_generation[s][r][c] = true;
                 }
 
-                if (current_generation[s][r][c]) {
+                if (_current_generation[s][r][c]) {
                     ws2812_write_screen_pixel(s, r, c, rgb2rgb_t_f(50, 50, 50));
                 } else {
                     ws2812_write_screen_pixel(s, r, c, rgb2rgb_t_f(0, 20, 5));
@@ -100,75 +103,75 @@ static bool cell_is_alive(int screen, int row, int col) {
     switch (screen) {
         case FRONT:
             if (row == -1)
-                return current_generation[TOP][N][col];
+                return _current_generation[TOP][N][col];
             else if (row == NUM_ROWS)
-                return current_generation[BOTTOM][0][col];
+                return _current_generation[BOTTOM][0][col];
             else if (col == -1)
-                return current_generation[LEFT][row][N];
+                return _current_generation[LEFT][row][N];
             else if (col == NUM_COLS)
-                return current_generation[RIGHT][row][0];
+                return _current_generation[RIGHT][row][0];
             else
-                return current_generation[FRONT][row][col];
+                return _current_generation[FRONT][row][col];
 
         case BACK:
             if (row == -1)
-                return current_generation[TOP][0][N - col];
+                return _current_generation[TOP][0][N - col];
             else if (row == NUM_ROWS)
-                return current_generation[BOTTOM][0][N - col];
+                return _current_generation[BOTTOM][0][N - col];
             else if (col == -1)
-                return current_generation[RIGHT][row][N];
+                return _current_generation[RIGHT][row][N];
             else if (col == NUM_COLS)
-                return current_generation[LEFT][row][0];
+                return _current_generation[LEFT][row][0];
             else
-                return current_generation[BACK][row][col];
+                return _current_generation[BACK][row][col];
 
         case LEFT:
             if (row == -1)
-                return current_generation[TOP][col][0];
+                return _current_generation[TOP][col][0];
             else if (row == NUM_ROWS)
-                return current_generation[BOTTOM][N - col][0];
+                return _current_generation[BOTTOM][N - col][0];
             else if (col == -1)
-                return current_generation[BACK][row][N];
+                return _current_generation[BACK][row][N];
             else if (col == NUM_COLS)
-                return current_generation[FRONT][row][0];
+                return _current_generation[FRONT][row][0];
             else
-                return current_generation[LEFT][row][col];
+                return _current_generation[LEFT][row][col];
 
         case RIGHT:
             if (row == -1)
-                return current_generation[TOP][N - col][N];
+                return _current_generation[TOP][N - col][N];
             else if (row == NUM_ROWS)
-                return current_generation[BOTTOM][col][N];
+                return _current_generation[BOTTOM][col][N];
             else if (col == -1)
-                return current_generation[FRONT][row][N];
+                return _current_generation[FRONT][row][N];
             else if (col == NUM_COLS)
-                return current_generation[BACK][row][0];
+                return _current_generation[BACK][row][0];
             else
-                return current_generation[RIGHT][row][col];
+                return _current_generation[RIGHT][row][col];
 
         case TOP:
             if (row == -1)
-                return current_generation[BACK][0][N - col];
+                return _current_generation[BACK][0][N - col];
             else if (row == NUM_ROWS)
-                return current_generation[FRONT][0][col];
+                return _current_generation[FRONT][0][col];
             else if (col == -1)
-                return current_generation[LEFT][0][row];
+                return _current_generation[LEFT][0][row];
             else if (col == NUM_COLS)
-                return current_generation[RIGHT][0][N - row];
+                return _current_generation[RIGHT][0][N - row];
             else
-                return current_generation[TOP][row][col];
+                return _current_generation[TOP][row][col];
 
         case BOTTOM:
             if (row == -1)
-                return current_generation[FRONT][N][col];
+                return _current_generation[FRONT][N][col];
             else if (row == NUM_ROWS)
-                return current_generation[BACK][N][N - col];
+                return _current_generation[BACK][N][N - col];
             else if (col == -1)
-                return current_generation[LEFT][N][N - row];
+                return _current_generation[LEFT][N][N - row];
             else if (col == NUM_COLS)
-                return current_generation[RIGHT][N][row];
+                return _current_generation[RIGHT][N][row];
             else
-                return current_generation[BOTTOM][row][col];
+                return _current_generation[BOTTOM][row][col];
 
         default:
             return false;

@@ -7,7 +7,7 @@
 #include "PCF8575_helper.h"
 #include "utils.h"
 
-#define RANGING_FREQUENCY_HZ 20
+#define RANGING_FREQUENCY_HZ 25
 #define SHARPENER_PERCENTAGE 15
 #define TEMP_CALIBRATION_LOOP_CNT 500
 #define INTEGRATION_TIME_MS 2

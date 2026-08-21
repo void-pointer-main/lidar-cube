@@ -14,7 +14,7 @@
 #define INPUT_COEF 0.1f
 
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 800.f
-#define BASE_INTENSITY 25u
+#define BASE_INTENSITY 50u
 
 #define MULT 8 // must be power of 2
 #define MEMBRANE_RES (NUM_ROWS*MULT)
@@ -28,6 +28,8 @@ static float next_cell_height(int screen, int row, int col);
 
 static rgb_t height_to_hot_cold_hue_rgb_t(float height);
 
+static bool first_run = true;
+
 static inline float cell_region_average(int screen, int disp_row, int disp_col, int step) {
     float sum = 0.f;
     for (int k = 0; k < MULT; k++) {
@@ -40,6 +42,7 @@ static inline float cell_region_average(int screen, int disp_row, int disp_col, 
 
 void membrane_init() {
     memset(membrane_surface_height, 0, sizeof(membrane_surface_height));
+    first_run = true;
 }
 
 void membrane_release() {
@@ -47,7 +50,12 @@ void membrane_release() {
 }
 
 void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
-    static int16_t prev_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS] = {0};
+    static int16_t prev_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
+
+    if (first_run) {
+        memcpy(prev_dist_array, dist_array, sizeof(prev_dist_array));
+        first_run = false;
+    }
 
     // calculate the update
     for (int s = 0; s < NUM_SCREENS; s++) {
