@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "pico/multicore.h"
+#include "pico/mutex.h"
 
 #include "vl53l7cx_api.h"
 #include "PCF8575_helper.h"
@@ -85,6 +86,10 @@ static inline bool range_valid(int range_status) {
 int16_t core1_results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
 void core_1_sampling();
 static void lidars_sample_group(int16_t results[NUM_LIDARS/2][VLX_NUM_ROWS][VLX_NUM_COLS], bool i2c_0_group);
+static void lidar_unit_init(int i);
+
+// used for parallelising the initialisation of the lidars
+static mutex_t i2c1_mutex;
 
 int lidars_init() {
 
@@ -99,62 +104,22 @@ int lidars_init() {
     }
 
     PCF_set_mask(0x0000);
-    for (int i = 0; i < NUM_LIDARS; i++) {
 
-        if (ignore_sensor_flag[i]) continue;
+    mutex_init(&i2c1_mutex);
+    mutex_enter_blocking(&i2c1_mutex);
+    multicore_launch_core1(core_1_sampling);
 
-        lidars[i].data_ready = false;
-
-        VL53L7CX_Configuration *lid_ptr = &(lidars[i].dev); // just for readability
-
-        // enable irq handler so that we can register a data ready interrupt
-        gpio_init(interrupt_pins[i]);
-        gpio_set_dir(interrupt_pins[i], false);
-        gpio_pull_up(interrupt_pins[i]);
-        gpio_set_irq_callback(data_ready_handler);
-        gpio_set_irq_enabled(interrupt_pins[i], GPIO_IRQ_EDGE_FALL, true);
-        
+    for (int i = 0; i < NUM_LIDARS/2; i++) {
         PCF_set_pin(i, 1);
+        mutex_exit(&i2c1_mutex);
 
-        lid_ptr->platform.address = DEFAULT_VL53L7CX_ADDR;
-
-        uint8_t is_alive;
-
-        status = vl53l7cx_is_alive(lid_ptr, &is_alive);
-        if(!is_alive || status)
-        {
-            // we test in case the address has already been set.
-            lid_ptr->platform.address = DEFAULT_VL53L7CX_ADDR + i%(NUM_LIDARS/2);
-            status = vl53l7cx_is_alive(lid_ptr, &is_alive);
-            my_assert(is_alive && !status, __FILE__, __LINE__);
+        if (!ignore_sensor_flag[i]) {
+            lidar_unit_init(i);
         }
 
-        status = vl53l7cx_init(lid_ptr);
-        my_assert(!status, __FILE__, __LINE__);
-
-
-        status = vl53l7cx_set_i2c_address(lid_ptr, DEFAULT_VL53L7CX_ADDR + i%(NUM_LIDARS/2));
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_ranging_mode(lid_ptr, VL53L7CX_RANGING_MODE_AUTONOMOUS);
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_integration_time_ms(lid_ptr, INTEGRATION_TIME_MS);
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_ranging_frequency_hz(lid_ptr, RANGING_FREQUENCY_HZ);
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_resolution(lid_ptr, VL53L7CX_RESOLUTION_8X8);
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_VHV_repeat_count(lid_ptr, TEMP_CALIBRATION_LOOP_CNT);
-        my_assert(!status, __FILE__, __LINE__);
-
-        status = vl53l7cx_set_sharpener_percent(lid_ptr, SHARPENER_PERCENTAGE);
-        my_assert(!status, __FILE__, __LINE__);
-
+        mutex_enter_blocking(&i2c1_mutex);
         PCF_set_pin(i, 0);
+               
     }
 
     for (int i = 0; i < NUM_LIDARS; i++) {
@@ -169,18 +134,84 @@ end:
     return status;
 }
 
+void core_1_sampling() {
+    for (int i = NUM_LIDARS/2; i < NUM_LIDARS; i++) {
+        mutex_enter_blocking(&i2c1_mutex);
+        PCF_set_pin(i, 1);
+
+        if (!ignore_sensor_flag[i]) {
+            lidar_unit_init(i);
+        }
+
+        PCF_set_pin(i, 0);
+        mutex_exit(&i2c1_mutex);
+    }
+
+    while (1) {
+        multicore_fifo_pop_blocking();
+
+        lidars_sample_group(core1_results, false);
+
+        multicore_fifo_push_blocking(0);
+    }
+}
+
+static void lidar_unit_init(int i) {
+    lidars[i].data_ready = false;
+
+    VL53L7CX_Configuration *lid_ptr = &(lidars[i].dev); // just for readability
+
+    // enable irq handler so that we can register a data ready interrupt
+    gpio_init(interrupt_pins[i]);
+    gpio_set_dir(interrupt_pins[i], false);
+    gpio_pull_up(interrupt_pins[i]);
+    gpio_set_irq_callback(data_ready_handler);
+    gpio_set_irq_enabled(interrupt_pins[i], GPIO_IRQ_EDGE_FALL, true);
+
+    lid_ptr->platform.address = DEFAULT_VL53L7CX_ADDR;
+
+    uint8_t is_alive;
+
+    uint8_t status = vl53l7cx_is_alive(lid_ptr, &is_alive);
+    if(!is_alive || status)
+    {
+        // we test in case the address has already been set.
+        lid_ptr->platform.address = DEFAULT_VL53L7CX_ADDR + i%(NUM_LIDARS/2);
+        status = vl53l7cx_is_alive(lid_ptr, &is_alive);
+        my_assert(is_alive && !status, __FILE__, __LINE__);
+    }
+
+    status = vl53l7cx_init(lid_ptr);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_i2c_address(lid_ptr, DEFAULT_VL53L7CX_ADDR + i%(NUM_LIDARS/2));
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_ranging_mode(lid_ptr, VL53L7CX_RANGING_MODE_AUTONOMOUS);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_integration_time_ms(lid_ptr, INTEGRATION_TIME_MS);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_ranging_frequency_hz(lid_ptr, RANGING_FREQUENCY_HZ);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_resolution(lid_ptr, VL53L7CX_RESOLUTION_8X8);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_VHV_repeat_count(lid_ptr, TEMP_CALIBRATION_LOOP_CNT);
+    my_assert(!status, __FILE__, __LINE__);
+
+    status = vl53l7cx_set_sharpener_percent(lid_ptr, SHARPENER_PERCENTAGE);
+    my_assert(!status, __FILE__, __LINE__);
+}
+
 void lidars_start_sampling() {
-    static bool first_run = true;
     for (int i = 0; i < NUM_LIDARS; i++) {
         if (ignore_sensor_flag[i]) continue;
 
         vl53l7cx_set_power_mode(&(lidars[i].dev), VL53L7CX_POWER_MODE_WAKEUP);
         vl53l7cx_start_ranging(&(lidars[i].dev));
-    }
-
-    if (first_run) {
-        multicore_launch_core1(core_1_sampling);
-        first_run = false;
     }
 }
 
@@ -203,16 +234,6 @@ void lidars_sample(int16_t results[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]) {
 
     multicore_fifo_pop_blocking();
     memcpy(&(results[NUM_LIDARS/2]), core1_results, NUM_LIDARS/2*VLX_NUM_ROWS*VLX_NUM_COLS*sizeof(int16_t));
-}
-
-void core_1_sampling() {
-    while (1) {
-        multicore_fifo_pop_blocking();
-
-        lidars_sample_group(core1_results, false);
-
-        multicore_fifo_push_blocking(0);
-    }
 }
 
 /* we check continously through the lidars for ones with available data */

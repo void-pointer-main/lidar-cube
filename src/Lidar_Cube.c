@@ -45,7 +45,13 @@ int main()
     mode_state_machine_init();
 
     displays_init();
+    
+    uint32_t st = time_us_32();
     my_assert(lidars_init() == 0, __FILE__, __LINE__);
+    uint32_t et = time_us_32();
+        
+    printf("%d\n", et-st);
+    
     lidars_start_sampling();
 
     printf("init success\n");
@@ -80,7 +86,7 @@ int main()
             sleep_ms(30);
         }
 
-        uint32_t st = time_us_32();
+        
         switch (lidar_cube_mode) {
             case PROJECTION:
                 displays_distance_to_color_write();
@@ -101,9 +107,7 @@ int main()
             default:
                 break;
         }
-        uint32_t et = time_us_32();
         
-        // printf("%d\n", et-st);
 
         ws2812_display_screens();
     }
