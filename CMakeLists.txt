@@ -67,6 +67,7 @@ pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pi
 target_link_libraries(Lidar_Cube
         pico_stdlib
         pico_multicore
+        pico_sync
         hardware_i2c
         hardware_irq
         hardware_pio
