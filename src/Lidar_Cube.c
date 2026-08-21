@@ -74,7 +74,7 @@ int main()
         int16_t collective_pixel_dists[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS] = {0};
         if (lidar_cube_mode != LOW_POWER) {
             lidars_sample(results_mm);
-            displays_project(results_mm, !moving, dir, lidar_cube_mode == RIPPLE);
+            displays_project(results_mm, !moving, dir);
             displays_get_collective_pixel_dists(collective_pixel_dists);
         } else {
             sleep_ms(30);

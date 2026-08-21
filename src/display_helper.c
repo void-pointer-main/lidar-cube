@@ -103,7 +103,7 @@ void displays_init() {
     // }
 }
 
-void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction, bool filter) {
+void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS], bool reject_direction, int direction) {
     static int16_t prev_collective_pixel_dists[NUM_SCREENS][NUM_DISP_ROWS][NUM_DISP_COLS] = {0};
 
     if (reject_direction) {
@@ -134,10 +134,6 @@ void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]
 
                     if (results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c] < _collective_pixel_dists[i][d_r][d_c]) {
                         _collective_pixel_dists[i][d_r][d_c] = results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c];
-                    }
-
-                    if (filter) {
-                        _collective_pixel_dists[i][d_r][d_c] = (int16_t)(_collective_pixel_dists[i][d_r][d_c] * 0.2f + 0.8f * prev_collective_pixel_dists[i][d_r][d_c]);
                     }
                 }
             }

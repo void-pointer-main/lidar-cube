@@ -4,15 +4,13 @@
 
 #include "utils.h"
 
-// we keep the next, current and previous iteration in the same array for convenience
+// we keep the next, current and previous iteration in the same array
 #define NUM_KEPT_STEPS 3
 
 // essentially defines the speed at which the waves will propagate
-#define SIM_COEF 0.7f
-
-#define DISSIPATION 0.96f
+#define SIM_COEF 0.7f // can't be any higher or sim diverges
+#define DISSIPATION 0.97f
 #define INPUT_COEF 0.1f
-
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 800.f
 #define BASE_INTENSITY 50u
 
@@ -20,6 +18,8 @@
 #define MEMBRANE_RES (NUM_ROWS*MULT)
 // just to clean the indexing in membrane_cell_height up
 #define N (MEMBRANE_RES-1)
+
+#define FILT_COEF 0.1f
 
 float membrane_surface_height[NUM_KEPT_STEPS][NUM_SCREENS][MEMBRANE_RES][MEMBRANE_RES];
 
@@ -50,18 +50,29 @@ void membrane_release() {
 }
 
 void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
-    static int16_t prev_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
+    static int16_t prev_filtered_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
+
+    int16_t filtered_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
 
     if (first_run) {
-        memcpy(prev_dist_array, dist_array, sizeof(prev_dist_array));
+        memcpy(prev_filtered_dist_array, dist_array, sizeof(prev_filtered_dist_array));
         first_run = false;
+    }
+
+    // exponential filter (we don't want noise in the lidar measurements to actuate the membrane)
+    for (int s = 0; s < NUM_SCREENS; s++) {
+        for (int dr = 0; dr < NUM_ROWS; dr++) {
+            for (int dc = 0; dc < NUM_COLS; dc++) {
+                filtered_dist_array[s][dr][dc] = (int16_t)(dist_array[s][dr][dc] * FILT_COEF + (1-FILT_COEF) * prev_filtered_dist_array[s][dr][dc]);
+            }
+        }
     }
 
     // calculate the update
     for (int s = 0; s < NUM_SCREENS; s++) {
         for (int r = 0; r < MEMBRANE_RES; r++) {
             for (int c = 0; c < MEMBRANE_RES; c++) {
-                int16_t insertion_dist = dist_array[s][r/MULT][c/MULT] - prev_dist_array[s][r/MULT][c/MULT];
+                int16_t insertion_dist = filtered_dist_array[s][r/MULT][c/MULT] - prev_filtered_dist_array[s][r/MULT][c/MULT];
 
                 membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * insertion_dist;
             }
@@ -72,12 +83,6 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
         for (int dr = 0; dr < NUM_ROWS; dr++) {
             for (int dc = 0; dc < NUM_COLS; dc++) {
                 ws2812_write_screen_pixel(s, dr, dc, height_to_hot_cold_hue_rgb_t(
-                    // 0.25 * (
-                    //     membrane_surface_height[0][s][dr*MULT][dc*MULT]
-                    //     + membrane_surface_height[0][s][dr*MULT+1][dc*MULT]
-                    //     + membrane_surface_height[0][s][dr*MULT][dc*MULT+1]
-                    //     + membrane_surface_height[0][s][dr*MULT+1][dc*MULT+1]
-                    // ) // average out cell group (downscaling)
                     cell_region_average(s, dr, dc, 0)
                 ));
             }
@@ -85,7 +90,7 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
     }
 
     // preparation for next update
-    memcpy(prev_dist_array, dist_array, sizeof(prev_dist_array));
+    memcpy(prev_filtered_dist_array, filtered_dist_array, sizeof(prev_filtered_dist_array));
     for (int i = NUM_KEPT_STEPS-1; i > 0; i--) {
         memcpy(membrane_surface_height[i], membrane_surface_height[i-1], sizeof(membrane_surface_height[i]));
     }
