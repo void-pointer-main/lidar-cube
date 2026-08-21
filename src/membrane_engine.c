@@ -9,17 +9,17 @@
 
 // essentially defines the speed at which the waves will propagate
 #define SIM_COEF 0.7f // can't be any higher or sim diverges
-#define DISSIPATION 0.97f
+#define DISSIPATION 0.92f
 #define INPUT_COEF 0.05f
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 1000.f
-#define BASE_INTENSITY 50u
+#define BASE_INTENSITY 100u
 
 #define MULT 8 // must be power of 2
 #define MEMBRANE_RES (NUM_ROWS*MULT)
 // just to clean the indexing in membrane_cell_height up
 #define N (MEMBRANE_RES-1)
 
-#define FILT_COEF 0.1f
+#define FILT_COEF 0.5f
 
 float membrane_surface_height[NUM_KEPT_STEPS][NUM_SCREENS][MEMBRANE_RES][MEMBRANE_RES];
 

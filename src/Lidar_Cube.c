@@ -56,7 +56,7 @@ int main() {
 
     float acc[3] = {0}, gyro[3] = {0};
 
-    lidar_cube_mode = LOW_POWER;
+    lidar_cube_mode = RIPPLE;
     mode_init(lidar_cube_mode);
 
     while (1) {

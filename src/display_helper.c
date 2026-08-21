@@ -135,6 +135,9 @@ void displays_project(int16_t results_mm[NUM_LIDARS][VLX_NUM_ROWS][VLX_NUM_COLS]
                     if (results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c] < _collective_pixel_dists[i][d_r][d_c]) {
                         _collective_pixel_dists[i][d_r][d_c] = results_mm[displays[i].lid_refs[edge].results_array_index][vlx_r][vlx_c];
                     }
+
+                    // potential for filtering?
+                    // _collective_pixel_dists[i][d_r][d_c] = (int16_t)(_collective_pixel_dists[i][d_r][d_c] * 0.6f + 0.4f * prev_collective_pixel_dists[i][d_r][d_c]);
                 }
             }
         }
