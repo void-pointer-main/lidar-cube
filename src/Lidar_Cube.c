@@ -45,10 +45,8 @@ int main() {
 
     displays_init();
     
-    uint32_t st = time_us_32();
     my_assert(lidars_init() == 0, __FILE__, __LINE__);
-    uint32_t et = time_us_32();
-    printf("lidar init time: %d us\n", et-st);
+    
     
     lidars_start_sampling();
 
@@ -56,7 +54,7 @@ int main() {
 
     float acc[3] = {0}, gyro[3] = {0};
 
-    lidar_cube_mode = RIPPLE;
+    lidar_cube_mode = PROJECTION;
     mode_init(lidar_cube_mode);
 
     while (1) {
@@ -84,7 +82,7 @@ int main() {
             sleep_ms(30);
         }
 
-        
+        uint32_t st = time_us_32();
         switch (lidar_cube_mode) {
             case PROJECTION:
                 displays_distance_to_color_write();
@@ -106,8 +104,7 @@ int main() {
                 break;
         }
         uint32_t et = time_us_32();
-        
-        // printf("%d\n", et-st);
+        printf("lidar init time: %d us\n", et-st);
 
         ws2812_display_screens();
     }

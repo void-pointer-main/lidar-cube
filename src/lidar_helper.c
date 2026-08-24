@@ -124,6 +124,8 @@ int lidars_init() {
     queue_init_with_spinlock(&sync_queue_0, sizeof(uint8_t), 1, sl0);
     queue_init_with_spinlock(&sync_queue_1, sizeof(uint8_t), 1, sl1);
 
+    printf("%x, %x\n", &sync_queue_0, &sync_queue_1);
+
     multicore_launch_core1(core_1_sampling);
 
     for (int i = 0; i < NUM_LIDARS/2; i++) {

@@ -9,12 +9,12 @@
 
 // essentially defines the speed at which the waves will propagate
 #define SIM_COEF 0.7f // can't be any higher or sim diverges
-#define DISSIPATION 0.92f
+#define DISSIPATION 0.97f
 #define INPUT_COEF 0.05f
 #define MAX_EXPECTED_MEMBRANE_DEFLECTION 1000.f
 #define BASE_INTENSITY 100u
 
-#define MULT 8 // must be power of 2
+#define MULT 4 // must be power of 2
 #define MEMBRANE_RES (NUM_ROWS*MULT)
 // just to clean the indexing in membrane_cell_height up
 #define N (MEMBRANE_RES-1)
@@ -51,11 +51,17 @@ void membrane_release() {
 
 void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]) {
     static int16_t prev_filtered_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
-
-    int16_t filtered_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS];
+    static int16_t filtered_dist_array[NUM_SCREENS][NUM_ROWS][NUM_COLS]; // memory bug somewhere with this one
 
     if (first_run) {
-        memcpy(prev_filtered_dist_array, dist_array, sizeof(prev_filtered_dist_array));
+        for (int s = 0; s < NUM_SCREENS; s++) {
+            for (int dr = 0; dr < NUM_ROWS; dr++) {
+                for (int dc = 0; dc < NUM_COLS; dc++) {
+                    filtered_dist_array[s][dr][dc] = dist_array[s][dr][dc]*1.f;
+                }
+            }
+        }
+        memcpy(prev_filtered_dist_array, filtered_dist_array, sizeof(prev_filtered_dist_array));
         first_run = false;
     }
 
@@ -63,7 +69,7 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
     for (int s = 0; s < NUM_SCREENS; s++) {
         for (int dr = 0; dr < NUM_ROWS; dr++) {
             for (int dc = 0; dc < NUM_COLS; dc++) {
-                filtered_dist_array[s][dr][dc] = (int16_t)(dist_array[s][dr][dc] * FILT_COEF + (1-FILT_COEF) * prev_filtered_dist_array[s][dr][dc]);
+                filtered_dist_array[s][dr][dc] = (int16_t)( FILT_COEF * dist_array[s][dr][dc] + (1-FILT_COEF) * prev_filtered_dist_array[s][dr][dc]);
             }
         }
     }
@@ -72,7 +78,7 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
     for (int s = 0; s < NUM_SCREENS; s++) {
         for (int r = 0; r < MEMBRANE_RES; r++) {
             for (int c = 0; c < MEMBRANE_RES; c++) {
-                int16_t insertion_dist = filtered_dist_array[s][r/MULT][c/MULT] - prev_filtered_dist_array[s][r/MULT][c/MULT];
+                float insertion_dist = (filtered_dist_array[s][r/MULT][c/MULT] - prev_filtered_dist_array[s][r/MULT][c/MULT])*100.f/(filtered_dist_array[s][r/MULT][c/MULT] + 1);
 
                 membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * insertion_dist;
             }
