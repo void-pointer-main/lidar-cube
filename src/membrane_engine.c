@@ -78,7 +78,7 @@ void membrane_update_and_write(int16_t dist_array[NUM_SCREENS][NUM_ROWS][NUM_COL
     for (int s = 0; s < NUM_SCREENS; s++) {
         for (int r = 0; r < MEMBRANE_RES; r++) {
             for (int c = 0; c < MEMBRANE_RES; c++) {
-                float insertion_dist = (filtered_dist_array[s][r/MULT][c/MULT] - prev_filtered_dist_array[s][r/MULT][c/MULT])*100.f/(filtered_dist_array[s][r/MULT][c/MULT] + 1);
+                float insertion_dist = (filtered_dist_array[s][r/MULT][c/MULT] - prev_filtered_dist_array[s][r/MULT][c/MULT]);//*100.f/(filtered_dist_array[s][r/MULT][c/MULT] + 1);
 
                 membrane_surface_height[0][s][r][c] = next_cell_height(s, r, c) * DISSIPATION + INPUT_COEF * insertion_dist;
             }
